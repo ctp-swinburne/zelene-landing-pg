@@ -63,8 +63,10 @@ model User {
     accounts      Account[]
     sessions      Session[]
     posts         Post[]
-    // customized fields for zelene platform
     role          String?
+    // customized fields for zelene platform
+    username      String?   @unique
+    password      String?
 }
 
 model VerificationToken {
