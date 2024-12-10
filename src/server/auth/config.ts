@@ -75,11 +75,11 @@ export const authConfig = {
 
           return {
             id: user.id,
-            name: user.name ?? null, 
-            email: user.email ?? null, 
-            username: user.username ?? "", 
-            image: user.image ?? null, 
-            role: user.role ?? "user", 
+            name: user.name ?? null,
+            email: user.email ?? null,
+            username: user.username ?? "",
+            image: user.image ?? null,
+            role: user.role ?? "user",
           };
         } catch (error) {
           console.error("Auth error:", error);
@@ -114,5 +114,9 @@ export const authConfig = {
         username: token.username as string,
       },
     }),
+    pages: {
+      signIn: "/auth/signin",
+      error: "/auth/signin",
+    }
   },
 } satisfies NextAuthConfig;
