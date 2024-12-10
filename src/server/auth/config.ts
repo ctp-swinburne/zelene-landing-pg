@@ -5,7 +5,7 @@ import GoogleProvider from "next-auth/providers/google";
 import GithubProvider from "next-auth/providers/github";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { loginSchema } from "~/lib/validations/auth";
+import { loginSchema } from "~/lib/validations/login";
 
 import { db } from "~/server/db";
 import { Adapter } from "next-auth/adapters";
@@ -95,7 +95,6 @@ export const authConfig = {
   session: {
     strategy: "jwt",
   },
-
   callbacks: {
     jwt: async ({ token, user }) => {
       if (user) {
@@ -114,9 +113,9 @@ export const authConfig = {
         username: token.username as string,
       },
     }),
-    pages: {
-      signIn: "/auth/signin",
-      error: "/auth/signin",
-    }
+  },
+  pages: {
+    signIn: "/auth/signin",
+    error: "/auth/signin",
   },
 } satisfies NextAuthConfig;
