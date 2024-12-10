@@ -1,21 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { Skeleton } from "antd";
+import { Skeleton, Card } from "antd";
 
-const SignInPage = dynamic(() => import("./signin-client"), {
+const SignInClient = dynamic(() => import("./signin-client"), {
   ssr: false,
   loading: () => (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4">
-      <div className="mx-auto w-full max-w-md">
-        <Skeleton.Input
-          active
-          block
-          style={{ height: 600, borderRadius: "0.5rem" }}
-        />
-      </div>
-    </main>
+    <div className="flex min-h-screen flex-col items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <Skeleton active paragraph={{ rows: 8 }} />
+      </Card>
+    </div>
   ),
 });
 
-export default SignInPage;
+export default function SignInPage() {
+  return <SignInClient />;
+}

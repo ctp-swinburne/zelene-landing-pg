@@ -3,8 +3,9 @@ import "~/styles/globals.css";
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
 
-import { Navbar } from "~/app/_components/Navbar";
 import { TRPCReactProvider } from "~/trpc/react";
+import { AntMessageProvider } from "~/app/_components/AntMessageProvider";
+import { AntThemeProvider } from "~/app/_components/AntThemeProvider";
 
 export const metadata: Metadata = {
   title: "Zelene - Sustainable Solutions",
@@ -19,8 +20,9 @@ export default function RootLayout({
     <html lang="en" className={GeistSans.variable}>
       <body className="min-h-screen bg-white">
         <TRPCReactProvider>
-          <Navbar />
-          {children}
+          <AntThemeProvider>
+            <AntMessageProvider>{children}</AntMessageProvider>
+          </AntThemeProvider>
         </TRPCReactProvider>
       </body>
     </html>

@@ -7,8 +7,17 @@ import { z } from "zod";
 import { FaGoogle, FaDiscord, FaGithub } from "react-icons/fa";
 import Link from "next/link";
 import Image from "next/image";
-import { Button, Form, Input, Typography, Divider, App } from "antd";
-import { useSearchParams } from "next/navigation";
+import {
+  Button,
+  Form,
+  Input,
+  Typography,
+  Divider,
+  App,
+  Card,
+  Skeleton,
+} from "antd";
+import { useSearchParams, useRouter } from "next/navigation";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -34,6 +43,7 @@ const getProviderIcon = (providerId: string) => {
 
 export default function SignInClient() {
   const { message } = App.useApp();
+  const router = useRouter();
   const [providers, setProviders] = useState<Record<
     LiteralUnion<BuiltInProviderType>,
     {
@@ -48,17 +58,82 @@ export default function SignInClient() {
   const error = searchParams?.get("error");
 
   const [form] = Form.useForm();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const fetchProviders = async () => {
-      const providers = await getProviders();
-      setProviders(providers);
+      try {
+        const fetchedProviders = await getProviders();
+        if (mounted) {
+          setProviders(fetchedProviders);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error("Error fetching providers:", error);
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
     };
-    fetchProviders().catch(console.error);
+
+    void fetchProviders();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
+  const onSubmit = async (data: SignInSchema) => {
+    try {
+      const result = await signIn("credentials", {
+        username: data.username,
+        password: data.password,
+        redirect: true,
+        callbackUrl: "/",
+      });
+
+      if (result?.error) {
+        message.error(
+          result.error === "CredentialsSignin"
+            ? "Invalid username or password"
+            : "Something went wrong",
+        );
+      }
+    } catch (error) {
+      message.error("An unexpected error occurred");
+    }
+  };
+
+  // For OAuth providers
+  const handleOAuthSignIn = (providerId: string) => {
+    void signIn(providerId, {
+      callbackUrl: "/",
+      redirect: true,
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-md">
+          <Skeleton active paragraph={{ rows: 8 }} />
+        </Card>
+      </div>
+    );
+  }
+
   if (!providers) {
-    return null;
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-md">
+          <div className="text-center">
+            <Text type="secondary">Unable to load sign-in options</Text>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   const oauthProviders = Object.values(providers).filter(
@@ -68,33 +143,9 @@ export default function SignInClient() {
     (provider) => provider.type === "credentials",
   );
 
-  const onSubmit = async (data: SignInSchema) => {
-    try {
-      const result = await signIn("credentials", {
-        username: data.username,
-        password: data.password,
-        callbackUrl: "/",
-        redirect: false,
-      });
-
-      if (result?.error) {
-        message.error(
-          result.error === "CredentialsSignin"
-            ? "Invalid username or password"
-            : "Something went wrong",
-        );
-      } else {
-        message.success("Signed in successfully!");
-        window.location.href = result?.url ?? "/";
-      }
-    } catch (error) {
-      message.error("An unexpected error occurred");
-    }
-  };
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
-      <div className="max-w-l w-xl mx-auto my-8">
+    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-md">
         <div className="space-y-4">
           <div className="flex justify-center">
             <Image
@@ -123,13 +174,7 @@ export default function SignInClient() {
             <Button
               key={provider.id}
               block
-              onClick={() =>
-                void signIn(provider.id, {
-                  callbackUrl: "/",
-                  redirect: true,
-                  error: "/auth/signin",
-                })
-              }
+              onClick={() => handleOAuthSignIn(provider.id)}
             >
               <div className="relative flex w-full items-center justify-center">
                 <div className="absolute left-0">
@@ -201,7 +246,7 @@ export default function SignInClient() {
             </Link>
           </div>
         </div>
-      </div>
-    </main>
+      </Card>
+    </div>
   );
 }

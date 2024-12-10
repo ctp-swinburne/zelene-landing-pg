@@ -30,6 +30,12 @@ export function Navbar() {
             >
               Contact
             </Link>
+            <Link
+              href="/auth/signin"
+              className="rounded-md bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
+            >
+              Sign In
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
