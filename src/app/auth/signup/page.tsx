@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import Image from "next/image";
 import { Button, Form, Input, Typography, App } from "antd";
+
+import dynamic from "next/dynamic";
+
 import dynamic from 'next/dynamic';
 
 const { Title, Text, Paragraph } = Typography;
@@ -31,8 +34,6 @@ export default function RegisterPage() {
   const handleSubmit = async () => {
     try {
       await form.validateFields();
-      
-      
       if (!showCaptcha) {
         setShowCaptcha(true);
         return;
@@ -42,7 +43,9 @@ export default function RegisterPage() {
       registerMutation.mutate(values);
     } catch (error) {
       // Form validation failed
+
       console.error('Validation failed:', error);
+
     }
   };
 
@@ -81,7 +84,9 @@ export default function RegisterPage() {
               name="email"
               rules={[
                 { required: true, message: "Email is required" },
+
                 { type: "email", message: "Please enter a valid email" }
+
               ]}
             >
               <Input placeholder="your@email.com" />
@@ -106,19 +111,27 @@ export default function RegisterPage() {
             {showCaptcha && (
               <Form.Item
                 name="captchaToken"
-                rules={[{ required: true, message: "Please complete the captcha" }]}
+
+                rules={[
+                  { required: true, message: "Please complete the captcha" },
+                ]}
               >
                 <ReCAPTCHA
                   sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                  onChange={(token) => form.setFieldValue('captchaToken', token)}
+                  onChange={(token) =>
+                    form.setFieldValue("captchaToken", token)
+                  }
+
                 />
               </Form.Item>
             )}
 
             <Form.Item>
-              <Button 
-                type="primary" 
-                htmlType="button" 
+
+              <Button
+                type="primary"
+                htmlType="button"
+
                 block
                 loading={registerMutation.isPending}
                 onClick={handleSubmit}
@@ -131,4 +144,6 @@ export default function RegisterPage() {
       </div>
     </main>
   );
+
 } 
+

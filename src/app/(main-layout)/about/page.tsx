@@ -1,4 +1,10 @@
+"use client";
+
 import Link from "next/link";
+import { Typography, Button, Card, Row, Col } from "antd";
+import { FaLightbulb, FaLeaf, FaUsers } from "react-icons/fa";
+
+const { Title, Paragraph } = Typography;
 
 export default function AboutPage() {
   return (
@@ -7,12 +13,12 @@ export default function AboutPage() {
       <section className="w-full bg-gradient-to-b from-green-50 to-white px-4 py-20">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center">
-            <h1 className="mb-6 text-5xl font-bold text-gray-900">
+            <Title level={1} className="mb-6">
               About Zelene
-            </h1>
-            <p className="mx-auto mb-8 max-w-2xl text-xl text-gray-600">
+            </Title>
+            <Paragraph className="mx-auto mb-8 max-w-2xl text-xl">
               Driving innovation in sustainability and environmental solutions
-            </p>
+            </Paragraph>
           </div>
         </div>
       </section>
@@ -21,15 +27,15 @@ export default function AboutPage() {
       <section className="w-full px-4 py-16">
         <div className="container mx-auto max-w-4xl">
           <div className="mb-16 text-center">
-            <h2 className="mb-6 text-3xl font-bold text-gray-900">
+            <Title level={2} className="mb-6">
               Our Mission
-            </h2>
-            <p className="text-lg text-gray-600">
-              At Zelene, we're committed to creating sustainable solutions that
-              make a real difference in the world. Our mission is to innovate
-              and implement environmentally conscious practices that benefit
-              both people and planet.
-            </p>
+            </Title>
+            <Paragraph className="text-lg">
+              At Zelene, we&apos;re committed to creating sustainable solutions
+              that make a real difference in the world. Our mission is to
+              innovate and implement environmentally conscious practices that
+              benefit both people and planet.
+            </Paragraph>
           </div>
         </div>
       </section>
@@ -37,50 +43,55 @@ export default function AboutPage() {
       {/* Values Section */}
       <section className="w-full bg-gray-50 px-4 py-16">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="mb-12 text-center text-3xl font-bold text-gray-900">
+          <Title level={2} className="mb-12 text-center">
             Our Values
-          </h2>
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-xl font-semibold text-gray-900">
-                Innovation
-              </h3>
-              <p className="text-gray-600">
-                Constantly pushing boundaries to find better solutions
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-xl font-semibold text-gray-900">
-                Sustainability
-              </h3>
-              <p className="text-gray-600">
-                Making choices that benefit our environment's future
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-xl font-semibold text-gray-900">
-                Community
-              </h3>
-              <p className="text-gray-600">
-                Building strong relationships with our stakeholders
-              </p>
-            </div>
-          </div>
+          </Title>
+          <Row gutter={[32, 32]}>
+            <Col xs={24} md={8}>
+              <Card className="h-full" bordered={false}>
+                <FaLightbulb className="mb-4 text-4xl text-green-600" />
+                <Title level={3}>Innovation</Title>
+                <Paragraph>
+                  Constantly pushing boundaries to find better solutions
+                </Paragraph>
+              </Card>
+            </Col>
+            <Col xs={24} md={8}>
+              <Card className="h-full" bordered={false}>
+                <FaLeaf className="mb-4 text-4xl text-green-600" />
+                <Title level={3}>Sustainability</Title>
+                <Paragraph>
+                  Making choices that benefit our environment&apos;s future
+                </Paragraph>
+              </Card>
+            </Col>
+            <Col xs={24} md={8}>
+              <Card className="h-full" bordered={false}>
+                <FaUsers className="mb-4 text-4xl text-green-600" />
+                <Title level={3}>Community</Title>
+                <Paragraph>
+                  Building strong relationships with our stakeholders
+                </Paragraph>
+              </Card>
+            </Col>
+          </Row>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="w-full px-4 py-16">
         <div className="container mx-auto max-w-6xl text-center">
-          <h2 className="mb-6 text-3xl font-bold text-gray-900">
+          <Title level={2} className="mb-6">
             Join Us in Making a Difference
-          </h2>
-          <Link
-            href="/"
-            className="inline-block rounded-full bg-green-600 px-8 py-3 font-medium text-white transition-colors hover:bg-green-700"
+          </Title>
+          <Button
+            type="primary"
+            size="large"
+            shape="round"
+            className="bg-green-600 hover:bg-green-700"
           >
-            Back to Home
-          </Link>
+            <Link href="/">Back to Home</Link>
+          </Button>
         </div>
       </section>
     </main>
