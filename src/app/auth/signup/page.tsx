@@ -8,11 +8,9 @@ import { Button, Form, Input, Typography, App } from "antd";
 
 import dynamic from "next/dynamic";
 
-import dynamic from 'next/dynamic';
-
 const { Title, Text, Paragraph } = Typography;
-const ReCAPTCHA = dynamic(() => import('react-google-recaptcha'), {
-  ssr: false
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
+  ssr: false,
 });
 
 export default function RegisterPage() {
@@ -44,8 +42,7 @@ export default function RegisterPage() {
     } catch (error) {
       // Form validation failed
 
-      console.error('Validation failed:', error);
-
+      console.error("Validation failed:", error);
     }
   };
 
@@ -85,8 +82,7 @@ export default function RegisterPage() {
               rules={[
                 { required: true, message: "Email is required" },
 
-                { type: "email", message: "Please enter a valid email" }
-
+                { type: "email", message: "Please enter a valid email" },
               ]}
             >
               <Input placeholder="your@email.com" />
@@ -111,7 +107,6 @@ export default function RegisterPage() {
             {showCaptcha && (
               <Form.Item
                 name="captchaToken"
-
                 rules={[
                   { required: true, message: "Please complete the captcha" },
                 ]}
@@ -121,17 +116,14 @@ export default function RegisterPage() {
                   onChange={(token) =>
                     form.setFieldValue("captchaToken", token)
                   }
-
                 />
               </Form.Item>
             )}
 
             <Form.Item>
-
               <Button
                 type="primary"
                 htmlType="button"
-
                 block
                 loading={registerMutation.isPending}
                 onClick={handleSubmit}
@@ -144,6 +136,4 @@ export default function RegisterPage() {
       </div>
     </main>
   );
-
-} 
-
+}
