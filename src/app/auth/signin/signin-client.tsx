@@ -194,7 +194,7 @@ export default function SignInClient() {
           <div className="mt-4 flex flex-col items-center gap-2">
             <Text type="secondary">New to Chiyu Developer Community?</Text>
             <Link
-              href="/auth/signup"
+              href="/auth/signup/options"
               className="text-primary font-medium hover:underline"
             >
               Create account
