@@ -90,7 +90,7 @@ export default function SignInClient() {
       const result = await signIn("credentials", {
         username: data.username,
         password: data.password,
-        redirect: true,
+        redirect: false,
         callbackUrl: "/",
       });
 
@@ -100,6 +100,9 @@ export default function SignInClient() {
             ? "Invalid username or password"
             : "Something went wrong",
         );
+      } else {
+        message.success("Signed in successfully!");
+        window.location.href = result?.url ?? "/";
       }
     } catch (error) {
       message.error("An unexpected error occurred");

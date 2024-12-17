@@ -79,7 +79,7 @@ export const authConfig = {
             email: user.email ?? null,
             username: user.username ?? "",
             image: user.image ?? null,
-            role: user.role ?? "user",
+            role: user.role ?? "MEMBER",
           };
         } catch (error) {
           console.error("Auth error:", error);

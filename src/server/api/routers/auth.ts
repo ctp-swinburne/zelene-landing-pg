@@ -3,6 +3,7 @@ import { registerSchema } from "~/lib/validations/register";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { verifyCaptcha } from "~/lib/captcha";
+import { UserRole } from "~/types/role";
 
 export const authRouter = createTRPCRouter({
   register: publicProcedure
@@ -39,7 +40,7 @@ export const authRouter = createTRPCRouter({
           password: hashedPassword,
           name,
           image,
-          role: "user",
+          role: UserRole.MEMBER,
         },
       });
 
