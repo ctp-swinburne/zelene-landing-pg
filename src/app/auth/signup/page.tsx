@@ -7,11 +7,21 @@ import Image from "next/image";
 import { Button, Form, Input, Typography, App } from "antd";
 
 import dynamic from "next/dynamic";
+import { type TRPCClientErrorLike } from "@trpc/client";
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph } = Typography;
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
   ssr: false,
 });
+
+interface RegisterFormValues {
+  email: string;
+  username: string;
+  password: string;
+  name?: string;
+  image?: string;
+  captchaToken?: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -24,7 +34,7 @@ export default function RegisterPage() {
       message.success("Registration successful!");
       router.push("/auth/signin");
     },
-    onError: (error) => {
+    onError: (error: TRPCClientErrorLike<any>) => {
       message.error(error.message);
     },
   });
@@ -37,11 +47,9 @@ export default function RegisterPage() {
         return;
       }
 
-      const values = await form.getFieldsValue();
-      registerMutation.mutate(values);
+      const values = await form.getFieldsValue() as RegisterFormValues;
+      registerMutation.mutate(values);     
     } catch (error) {
-      // Form validation failed
-
       console.error("Validation failed:", error);
     }
   };
