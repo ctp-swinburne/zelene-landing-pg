@@ -23,14 +23,25 @@ const getProviderIcon = (providerId: string) => {
     }
   };
 
+interface Provider {
+  id: string;
+  name: string;
+  type: string;
+  signinUrl: string;
+  callbackUrl: string;
+}
+
 export default function SignUpOptions() {
   const [providers, setProviders] = useState<Record<
     LiteralUnion<BuiltInProviderType>,
-    any
+    Provider
   > | null>(null);
 
   useEffect(() => {
-    getProviders().then(setProviders);
+    void (async () => {
+      const fetchedProviders = await getProviders();
+      setProviders(fetchedProviders);
+    })();
   }, []);
 
   if (!providers) return null;
