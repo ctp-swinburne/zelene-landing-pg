@@ -34,7 +34,7 @@ export default function RegisterPage() {
       message.success("Registration successful!");
       router.push("/auth/signin");
     },
-    onError: (error: TRPCClientErrorLike<any>) => {
+    onError: (error) => {
       message.error(error.message);
     },
   });
