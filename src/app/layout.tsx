@@ -2,6 +2,7 @@ import "~/styles/globals.css";
 
 import { GeistSans } from "geist/font/sans";
 import { type Metadata } from "next";
+import { SessionProvider } from "next-auth/react";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { AntMessageProvider } from "~/app/_components/AntMessageProvider";
@@ -20,9 +21,11 @@ export default function RootLayout({
     <html lang="en" className={GeistSans.variable}>
       <body className="min-h-screen bg-white">
         <TRPCReactProvider>
-          <AntThemeProvider>
-            <AntMessageProvider>{children}</AntMessageProvider>
-          </AntThemeProvider>
+          <SessionProvider>
+            <AntThemeProvider>
+              <AntMessageProvider>{children}</AntMessageProvider>
+            </AntThemeProvider>
+          </SessionProvider>
         </TRPCReactProvider>
       </body>
     </html>

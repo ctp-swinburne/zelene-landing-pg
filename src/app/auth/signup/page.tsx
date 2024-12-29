@@ -47,8 +47,8 @@ export default function RegisterPage() {
         return;
       }
 
-      const values = await form.getFieldsValue() as RegisterFormValues;
-      registerMutation.mutate(values);     
+      const values = (await form.getFieldsValue()) as RegisterFormValues;
+      registerMutation.mutate(values);
     } catch (error) {
       console.error("Validation failed:", error);
     }
@@ -61,13 +61,13 @@ export default function RegisterPage() {
           <div className="flex justify-center">
             <Image
               src="/favicon.png"
-              alt="Chiyu Lab Logo"
+              alt="Zelene Platform Logo"
               width={64}
               height={64}
             />
           </div>
           <Title level={2} className="text-center">
-            Join the Chiyu Lab DEV community
+            Join the Zelene Platform community
           </Title>
           <Paragraph type="secondary" className="text-center">
             Create your account to get started

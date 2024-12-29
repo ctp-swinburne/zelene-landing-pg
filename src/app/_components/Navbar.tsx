@@ -1,20 +1,48 @@
 "use client";
-
 import Link from "next/link";
 import { Layout, Menu, Button, Drawer } from "antd";
 import { MenuOutlined } from "@ant-design/icons";
 import { useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { type Session } from "next-auth";
+import { useRouter } from "next/navigation"; // Changed this line
 
 const { Header } = Layout;
 
 export function Navbar() {
+  const router = useRouter();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const { data: session, status } = useSession();
 
   const menuItems = [
     { key: "home", label: "Home", href: "/" },
     { key: "about", label: "About", href: "/about" },
     { key: "contact", label: "Contact", href: "/contact" },
   ];
+
+  const handleAuthClick = async () => {
+    try {
+      if (session) {
+        router.push("/auth/signout"); // Changed to use router.push without await
+      } else {
+        await signIn();
+      }
+    } catch (error) {
+      console.error("Auth action failed:", error);
+    }
+  };
+
+  const AuthButton = ({
+    session,
+    className,
+  }: {
+    session: Session | null;
+    className?: string;
+  }) => (
+    <Button type="primary" onClick={handleAuthClick} className={className}>
+      {session ? "Sign Out" : "Sign In"}
+    </Button>
+  );
 
   return (
     <Header style={{ background: "#fff", padding: "0 20px" }}>
@@ -41,9 +69,7 @@ export function Navbar() {
               </Menu.Item>
             ))}
           </Menu>
-          <Button type="primary">
-            <Link href="/auth/signin">Sign In</Link>
-          </Button>
+          <AuthButton session={session} />
         </div>
 
         {/* Mobile Menu Button */}
@@ -68,8 +94,8 @@ export function Navbar() {
                 <Link href={item.href}>{item.label}</Link>
               </Menu.Item>
             ))}
-            <Menu.Item key="signin">
-              <Link href="/auth/signin">Sign In</Link>
+            <Menu.Item key="auth">
+              <AuthButton session={session} className="w-full" />
             </Menu.Item>
           </Menu>
         </Drawer>

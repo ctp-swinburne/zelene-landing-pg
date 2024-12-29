@@ -153,16 +153,17 @@ export default function SignInClient() {
           <div className="flex justify-center">
             <Image
               src="/favicon.png"
-              alt="Chiyu Lab Logo"
+              alt="Zelene Platform Logo"
               width={64}
               height={64}
             />
           </div>
           <Title level={2} className="text-center">
-            Join the Chiyu Lab DEV community
+            Join the Zelene Platform community
           </Title>
           <Paragraph type="secondary" className="text-center">
-            Chiyu Lab is a community founded by 4 amazing student developers
+            Zelene Platform is an IoT platform founded by 5 amazing student
+            developers
           </Paragraph>
           {error && (
             <Text type="danger">
@@ -240,7 +241,7 @@ export default function SignInClient() {
         <div className="mt-8 flex flex-col items-center">
           <Divider />
           <div className="mt-4 flex flex-col items-center gap-2">
-            <Text type="secondary">New to Chiyu Developer Community?</Text>
+            <Text type="secondary">New to Zelene Platform Community?</Text>
             <Link
               href="/auth/signup"
               className="text-primary font-medium hover:underline"
