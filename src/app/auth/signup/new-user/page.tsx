@@ -11,17 +11,17 @@ import { FaGoogle, FaDiscord, FaGithub } from "react-icons/fa";
 const { Title, Paragraph } = Typography;
 
 const getProviderIcon = (providerId: string) => {
-    switch (providerId) {
-      case "google":
-        return <FaGoogle className="mr-2 h-4 w-4" />;
-      case "discord":
-        return <FaDiscord className="mr-2 h-4 w-4" />;
-      case "github":
-        return <FaGithub className="mr-2 h-4 w-4" />;
-      default:
-        return null;
-    }
-  };
+  switch (providerId) {
+    case "google":
+      return <FaGoogle className="mr-2 h-4 w-4" />;
+    case "discord":
+      return <FaDiscord className="mr-2 h-4 w-4" />;
+    case "github":
+      return <FaGithub className="mr-2 h-4 w-4" />;
+    default:
+      return null;
+  }
+};
 
 interface Provider {
   id: string;
@@ -47,7 +47,7 @@ export default function SignUpOptions() {
   if (!providers) return null;
 
   const oauthProviders = Object.values(providers).filter(
-    (provider) => provider.type === "oauth" || provider.type === "oidc"
+    (provider) => provider.type === "oauth" || provider.type === "oidc",
   );
 
   return (
@@ -57,13 +57,13 @@ export default function SignUpOptions() {
           <div className="flex justify-center">
             <Image
               src="/favicon.png"
-              alt="Chiyu Lab Logo"
+              alt="Zelene Platform Logo"
               width={64}
               height={64}
             />
           </div>
           <Title level={2} className="text-center">
-            Join the Chiyu Lab DEV community
+            Join the Zelene Platform community
           </Title>
           <Paragraph type="secondary" className="text-center">
             Choose how you want to create your account
@@ -75,11 +75,11 @@ export default function SignUpOptions() {
             <Button
               key={provider.id}
               block
-              onClick={() => 
+              onClick={() =>
                 signIn(provider.id, {
                   callbackUrl: "/",
                   redirect: true,
-                  error: "/auth/signin"
+                  error: "/auth/signin",
                 })
               }
             >
@@ -103,4 +103,4 @@ export default function SignUpOptions() {
       </div>
     </main>
   );
-} 
+}

@@ -69,8 +69,8 @@ model User {
     accounts      Account[]
     sessions      Session[]
     posts         Post[]
-    role          UserRole  @default(MEMBER)
     // customized fields for zelene platform
+    role          UserRole  @default(MEMBER)
     username      String?   @unique
     password      String?
 }
