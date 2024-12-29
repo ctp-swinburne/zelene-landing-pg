@@ -21,7 +21,21 @@ const { Option } = Select;
 export default function ContactPage() {
   const [form] = Form.useForm();
 
-  const onFinish = (values: any) => {
+  interface ContactFormValues {
+    name: string;
+    organization: string;
+    email: string;
+    phone: string;
+    interest:
+      | "smart-lighting"
+      | "energy-management"
+      | "infrastructure"
+      | "data-analytics"
+      | "other";
+    message: string;
+  }
+
+  const onFinish = (values: ContactFormValues) => {
     console.log("Form values:", values);
     // Placeholder for form submission
     form.resetFields();
