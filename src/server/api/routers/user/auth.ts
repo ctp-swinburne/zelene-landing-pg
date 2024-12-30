@@ -1,16 +1,15 @@
-import { createTRPCRouter, publicProcedure } from "../trpc";
-import { registerSchema } from "~/lib/validations/register";
+import { createTRPCRouter, publicProcedure } from "../../trpc";
+import { registerInputSchema, userRoleSchema } from "./schema";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { verifyCaptcha } from "~/lib/captcha";
-import { UserRole } from "~/types/role";
 
 export const authRouter = createTRPCRouter({
   register: publicProcedure
-    .input(registerSchema)
+    .input(registerInputSchema)
     .mutation(async ({ ctx, input }) => {
       const { username, password, name, image, email, captchaToken } = input;
-      
+
       // Verify captcha
       const captchaResult = await verifyCaptcha(captchaToken);
       if (!captchaResult.success) {
@@ -21,7 +20,7 @@ export const authRouter = createTRPCRouter({
       }
 
       const existingUser = await ctx.db.user.findFirst({
-        where: { OR: [{ username },{email}] },
+        where: { OR: [{ username }, { email }] },
       });
 
       if (existingUser) {
@@ -35,15 +34,15 @@ export const authRouter = createTRPCRouter({
 
       const user = await ctx.db.user.create({
         data: {
-          username, 
+          username,
           email,
           password: hashedPassword,
           name,
           image,
-          role: UserRole.MEMBER,
+          role: userRoleSchema.enum.MEMBER,
         },
       });
 
       return { success: true, user };
     }),
-}); 
+});

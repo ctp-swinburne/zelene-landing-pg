@@ -69,7 +69,6 @@ export default function SignUpOptions() {
             Choose how you want to create your account
           </Paragraph>
         </div>
-
         <div className="mt-8 grid gap-4">
           {oauthProviders.map((provider) => (
             <Button
@@ -91,9 +90,7 @@ export default function SignUpOptions() {
               </div>
             </Button>
           ))}
-
           <Divider>Or</Divider>
-
           <Link href="/auth/signup">
             <Button type="primary" block>
               Create new account
