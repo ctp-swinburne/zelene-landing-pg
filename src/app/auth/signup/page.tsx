@@ -5,28 +5,21 @@ import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import Image from "next/image";
 import { Button, Form, Input, Typography, App } from "antd";
-
 import dynamic from "next/dynamic";
-import { type TRPCClientErrorLike } from "@trpc/client";
+import {
+  type RegisterInput,
+  registerInputSchema,
+} from "~/server/api/routers/user/schema";
 
 const { Title, Paragraph } = Typography;
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
   ssr: false,
 });
 
-interface RegisterFormValues {
-  email: string;
-  username: string;
-  password: string;
-  name?: string;
-  image?: string;
-  captchaToken?: string;
-}
-
 export default function RegisterPage() {
   const router = useRouter();
   const { message } = App.useApp();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<RegisterInput>();
   const [showCaptcha, setShowCaptcha] = useState(false);
 
   const registerMutation = api.auth.register.useMutation({
@@ -41,16 +34,20 @@ export default function RegisterPage() {
 
   const handleSubmit = async () => {
     try {
-      await form.validateFields();
+      const values = await form.validateFields();
+
       if (!showCaptcha) {
         setShowCaptcha(true);
         return;
       }
 
-      const values = (await form.getFieldsValue()) as RegisterFormValues;
-      registerMutation.mutate(values);
+      // Validate with Zod schema
+      const validatedData = registerInputSchema.parse(values);
+      registerMutation.mutate(validatedData);
     } catch (error) {
-      console.error("Validation failed:", error);
+      if (error instanceof Error) {
+        console.error("Validation failed:", error);
+      }
     }
   };
 
@@ -79,7 +76,10 @@ export default function RegisterPage() {
             <Form.Item
               label="Username"
               name="username"
-              rules={[{ required: true, message: "Username is required" }]}
+              rules={[
+                { required: true, message: "Username is required" },
+                { min: 3, message: "Username must be at least 3 characters" },
+              ]}
             >
               <Input placeholder="username" />
             </Form.Item>
@@ -89,7 +89,6 @@ export default function RegisterPage() {
               name="email"
               rules={[
                 { required: true, message: "Email is required" },
-
                 { type: "email", message: "Please enter a valid email" },
               ]}
             >
@@ -107,7 +106,10 @@ export default function RegisterPage() {
             <Form.Item
               label="Password"
               name="password"
-              rules={[{ required: true, message: "Password is required" }]}
+              rules={[
+                { required: true, message: "Password is required" },
+                { min: 6, message: "Password must be at least 6 characters" },
+              ]}
             >
               <Input.Password />
             </Form.Item>
