@@ -22,7 +22,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="w-full bg-gradient-to-b from-[#d6e4e9] to-white px-4 py-20">
         <div className="container mx-auto max-w-6xl text-center">
-          <Title level={1} className="mb-6" style={{ color: "#2c3e50" }}>
+          <Title level={1} className="mb-6">
             Zelene IoT Platform
           </Title>
           <Paragraph
@@ -34,19 +34,10 @@ export default function LandingPage() {
             IoT technology.
           </Paragraph>
           <Space size="large">
-            <Button
-              type="primary"
-              size="large"
-              shape="round"
-              style={{ backgroundColor: "#0bdc84" }}
-            >
+            <Button type="primary" size="large" shape="round">
               <Link href="/contact">Request Demo</Link>
             </Button>
-            <Button
-              size="large"
-              shape="round"
-              style={{ borderColor: "#0bdc84", color: "#0bdc84" }}
-            >
+            <Button size="large" shape="round">
               <Link href="/documentation">View Documentation</Link>
             </Button>
           </Space>
@@ -88,11 +79,7 @@ export default function LandingPage() {
       {/* Main Features Section */}
       <section className="w-full bg-[#f7fafc] px-4 py-16">
         <div className="container mx-auto max-w-6xl">
-          <Title
-            level={2}
-            className="mb-12 text-center"
-            style={{ color: "#2c3e50" }}
-          >
+          <Title level={2} className="mb-12 text-center">
             Comprehensive IoT Platform Features
           </Title>
           <Row gutter={[32, 32]}>
@@ -144,11 +131,7 @@ export default function LandingPage() {
       {/* Technical Features */}
       <section className="w-full px-4 py-16">
         <div className="container mx-auto max-w-6xl">
-          <Title
-            level={2}
-            className="mb-12 text-center"
-            style={{ color: "#2c3e50" }}
-          >
+          <Title level={2} className="mb-12 text-center">
             Technical Capabilities
           </Title>
           <Row gutter={[32, 32]}>
@@ -207,11 +190,7 @@ export default function LandingPage() {
       {/* Benefits Section */}
       <section className="w-full bg-[#f7fafc] px-4 py-16">
         <div className="container mx-auto max-w-6xl">
-          <Title
-            level={2}
-            className="mb-12 text-center"
-            style={{ color: "#2c3e50" }}
-          >
+          <Title level={2} className="mb-12 text-center">
             Key Benefits
           </Title>
           <Row gutter={[32, 32]}>
@@ -261,18 +240,13 @@ export default function LandingPage() {
             sustainable cities
           </Paragraph>
           <Space size="large">
-            <Button
-              type="primary"
-              size="large"
-              shape="round"
-              style={{ backgroundColor: "#0bdc84" }}
-            >
+            <Button type="primary" size="large" shape="round">
               <Link href="/contact">Schedule a Demo</Link>
             </Button>
             <Button
+              className="border-white hover:text-[#0bdc84]"
               size="large"
               shape="round"
-              style={{ borderColor: "#ffffff", color: "#ffffff" }}
             >
               <Link href="/about">Learn More</Link>
             </Button>
