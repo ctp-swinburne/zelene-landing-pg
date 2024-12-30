@@ -1,12 +1,14 @@
-import { z } from "zod";
-import { createTRPCRouter } from "../trpc";
-import { adminProcedure, tenantAdminProcedure } from "../middlewares/auth";
+import { createTRPCRouter } from "../../trpc";
+import { adminProcedure, tenantAdminProcedure } from "../../middlewares/auth";
 import { TRPCError } from "@trpc/server";
-import { UserRole } from "~/types/role";
+import {
+  createAdminInputSchema,
+  removeAdminInputSchema,
+  userRoleSchema,
+} from "./schema";
 import bcrypt from "bcryptjs";
 
 export const adminRouter = createTRPCRouter({
-  
   getAdminData: adminProcedure.query(() => {
     return {
       message: "You have access to the admin !",
@@ -14,11 +16,10 @@ export const adminRouter = createTRPCRouter({
     };
   }),
 
-
   listAdmins: tenantAdminProcedure.query(async ({ ctx }) => {
     const admins = await ctx.db.user.findMany({
       where: {
-        role: UserRole.ADMIN,
+        role: userRoleSchema.enum.ADMIN,
       },
       select: {
         id: true,
@@ -32,14 +33,7 @@ export const adminRouter = createTRPCRouter({
   }),
 
   createAdmin: tenantAdminProcedure
-    .input(
-      z.object({
-        username: z.string(),
-        email: z.string().email(),
-        password: z.string().min(6),
-        name: z.string(),
-      })
-    )
+    .input(createAdminInputSchema)
     .mutation(async ({ ctx, input }) => {
       const existingUser = await ctx.db.user.findFirst({
         where: { OR: [{ username: input.username }, { email: input.email }] },
@@ -58,7 +52,7 @@ export const adminRouter = createTRPCRouter({
         data: {
           ...input,
           password: hashedPassword,
-          role: UserRole.ADMIN,
+          role: userRoleSchema.enum.ADMIN,
         },
       });
 
@@ -66,13 +60,13 @@ export const adminRouter = createTRPCRouter({
     }),
 
   removeAdmin: tenantAdminProcedure
-    .input(z.object({ userId: z.string() }))
+    .input(removeAdminInputSchema)
     .mutation(async ({ ctx, input }) => {
       const user = await ctx.db.user.findUnique({
         where: { id: input.userId },
       });
 
-      if (!user || user.role !== UserRole.ADMIN) {
+      if (!user || user.role !== userRoleSchema.enum.ADMIN) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Admin not found",
@@ -85,4 +79,4 @@ export const adminRouter = createTRPCRouter({
 
       return { success: true };
     }),
-}); 
+});
