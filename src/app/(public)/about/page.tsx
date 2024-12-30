@@ -198,19 +198,10 @@ export default function AboutPage() {
             Join Us in Transforming Urban Infrastructure
           </Title>
           <Space size="large">
-            <Button
-              type="primary"
-              size="large"
-              shape="round"
-              style={{ backgroundColor: "#0bdc84" }}
-            >
+            <Button type="primary" size="large" shape="round">
               <Link href="/contact">Contact Us</Link>
             </Button>
-            <Button
-              size="large"
-              shape="round"
-              style={{ borderColor: "#ffffff", color: "#ffffff" }}
-            >
+            <Button size="large" shape="round">
               <Link href="/">Back to Home</Link>
             </Button>
           </Space>
