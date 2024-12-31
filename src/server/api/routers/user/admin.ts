@@ -5,7 +5,7 @@ import {
   createAdminInputSchema,
   removeAdminInputSchema,
   userRoleSchema,
-} from "./schema";
+} from "~/schema/users";
 import bcrypt from "bcryptjs";
 
 export const adminRouter = createTRPCRouter({
