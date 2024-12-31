@@ -5,8 +5,9 @@ import {
   ContactQuerySchema,
   FeedbackSchema,
   SupportRequestSchema,
-  TechnicalIssueSchema,
+  TechnicalIssueWithFilesSchema,
 } from "~/schema/queries";
+import { uploadToSupabase } from "~/utils/supabase";
 
 export const queryRouter = createTRPCRouter({
   submitContact: publicProcedure
@@ -81,23 +82,34 @@ export const queryRouter = createTRPCRouter({
     }),
 
   submitTechnicalIssue: publicProcedure
-    .input(TechnicalIssueSchema)
-    .mutation(async ({ ctx, input }): Promise<{ success: true }> => {
+    .input(TechnicalIssueWithFilesSchema)
+    .mutation(async ({ ctx, input }) => {
       try {
+        const { attachments, ...issueData } = input;
+
+        // Handle file uploads if attachments exist
+        const uploadedPaths = attachments
+          ? await Promise.all(
+              attachments.map((file) => {
+                const fileData = {
+                  buffer: Buffer.from(file.base64Data, "base64"),
+                  filename: file.filename,
+                  contentType: file.contentType,
+                };
+                return uploadToSupabase(fileData);
+              }),
+            )
+          : [];
+
+        // Create technical issue with uploaded file paths
         await ctx.db.technicalIssue.create({
           data: {
-            deviceId: input.deviceId,
-            issueType: input.issueType,
-            severity: input.severity,
-            title: input.title,
-            description: input.description,
-            stepsToReproduce: input.stepsToReproduce,
-            expectedBehavior: input.expectedBehavior,
-            attachments: input.attachments ?? [],
-            status: "NEW",
+            ...issueData,
+            attachments: uploadedPaths,
           },
         });
-        return { success: true };
+
+        return { success: true as const };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
