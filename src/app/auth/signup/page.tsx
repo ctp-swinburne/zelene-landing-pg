@@ -6,10 +6,7 @@ import { api } from "~/trpc/react";
 import Image from "next/image";
 import { Button, Form, Input, Typography, App } from "antd";
 import dynamic from "next/dynamic";
-import {
-  type RegisterInput,
-  registerInputSchema,
-} from "~/server/api/routers/user/schema";
+import { type RegisterInput, registerInputSchema } from "~/schema/users";
 
 const { Title, Paragraph } = Typography;
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {

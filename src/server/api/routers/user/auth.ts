@@ -1,5 +1,5 @@
 import { createTRPCRouter, publicProcedure } from "../../trpc";
-import { registerInputSchema, userRoleSchema } from "./schema";
+import { registerInputSchema, userRoleSchema } from "~/schema/users";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { verifyCaptcha } from "~/lib/captcha";
