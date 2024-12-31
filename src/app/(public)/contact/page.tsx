@@ -12,6 +12,7 @@ import {
   Col,
   Space,
   Alert,
+  message,
 } from "antd";
 import {
   MailOutlined,
@@ -19,38 +20,58 @@ import {
   GlobalOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import { api } from "~/trpc/react";
+import type { ContactQuery } from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+type InquiryType = "PARTNERSHIP" | "SALES" | "MEDIA" | "GENERAL";
+type QueryStatus = "NEW" | "IN_PROGRESS" | "RESOLVED" | "CANCELLED";
 
 interface ContactFormValues {
   name: string;
   organization: string;
   email: string;
   phone: string;
-  inquiryType: string;
+  inquiryType: InquiryType;
   message: string;
+  status: QueryStatus;
 }
 
 export default function ContactPage() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ContactFormValues>();
+  const [messageApi, contextHolder] = message.useMessage();
+
+  const mutation = api.queries.submitContact.useMutation({
+    onSuccess: () => {
+      messageApi.success("Your message has been sent successfully!");
+      form.resetFields();
+    },
+    onError: (error) => {
+      messageApi.error("Failed to send message. Please try again.");
+      console.error("Form submission error:", error);
+    },
+  });
 
   const onFinish = (values: ContactFormValues) => {
-    console.log("Contact Form:", values);
-    // Will use the same API endpoint with type: 'contact'
-    form.resetFields();
+    // Since our form values already match the ContactQuery type, we can pass them directly
+    const contactData: ContactQuery = values;
+
+    mutation.mutate(contactData);
   };
 
   const inquiryTypes = [
-    { label: "Partnership Opportunities", value: "partnership" },
-    { label: "Sales Inquiry", value: "sales" },
-    { label: "Media & Press", value: "media" },
-    { label: "General Information", value: "general" },
-  ];
+    { label: "Partnership Opportunities", value: "PARTNERSHIP" },
+    { label: "Sales Inquiry", value: "SALES" },
+    { label: "Media & Press", value: "MEDIA" },
+    { label: "General Information", value: "GENERAL" },
+  ] satisfies { label: string; value: InquiryType }[];
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {contextHolder}
       <section className="w-full bg-gradient-to-b from-[#d6e4e9] to-white px-4 py-16">
         <div className="container mx-auto max-w-6xl text-center">
           <Title level={1} className="text-gray-800">
@@ -173,6 +194,10 @@ export default function ContactPage() {
                   label="Message"
                   rules={[
                     { required: true, message: "Please enter your message" },
+                    {
+                      min: 10,
+                      message: "Message must be at least 10 characters",
+                    },
                   ]}
                 >
                   <TextArea
@@ -190,8 +215,9 @@ export default function ContactPage() {
                     icon={<TeamOutlined />}
                     className="w-full"
                     style={{ backgroundColor: "#0bdc84" }}
+                    loading={mutation.isPending}
                   >
-                    Send Message
+                    {mutation.isPending ? "Sending..." : "Send Message"}
                   </Button>
                 </Form.Item>
               </Form>

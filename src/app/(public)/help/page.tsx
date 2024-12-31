@@ -14,6 +14,7 @@ import {
   Collapse,
   Divider,
   Tag,
+  message,
 } from "antd";
 import {
   QuestionCircleOutlined,
@@ -21,28 +22,57 @@ import {
   BookOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+import { api } from "~/trpc/react";
+import type {
+  SupportRequest,
+  SupportCategory,
+  SupportPriority,
+} from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
 
-interface SupportRequestValues {
-  category: string;
-  subject: string;
-  description: string;
-  priority: "low" | "medium" | "high";
-}
+type SupportRequestValues = Omit<SupportRequest, "status">;
 
 export default function HelpCenterPage() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<SupportRequestValues>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [messageApi, contextHolder] = message.useMessage();
 
-  const onFinish = (values: SupportRequestValues) => {
-    console.log("Support Request:", values);
-    // Will use the same API endpoint with type: 'support-request'
-    form.resetFields();
+  const mutation = api.queries.submitSupportRequest.useMutation({
+    onSuccess: () => {
+      messageApi.success("Support request submitted successfully!");
+      form.resetFields();
+    },
+    onError: (error) => {
+      messageApi.error("Failed to submit support request. Please try again.");
+      console.error("Form submission error:", error);
+    },
+  });
+
+  const onFinish = (values: Omit<SupportRequestValues, "status">) => {
+    const supportData: SupportRequest = {
+      ...values,
+      status: "NEW",
+    };
+
+    mutation.mutate(supportData);
   };
+
+  const supportCategories = [
+    { label: "Account & Access", value: "ACCOUNT" },
+    { label: "Device Management", value: "DEVICES" },
+    { label: "Platform Usage", value: "PLATFORM" },
+    { label: "Other", value: "OTHER" },
+  ] satisfies { label: string; value: SupportCategory }[];
+
+  const priorityLevels = [
+    { label: "Low - General Question", value: "LOW" },
+    { label: "Medium - Need Help Soon", value: "MEDIUM" },
+    { label: "High - Urgent Assistance", value: "HIGH" },
+  ] satisfies { label: string; value: SupportPriority }[];
 
   const faqCategories = [
     {
@@ -73,6 +103,7 @@ export default function HelpCenterPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center bg-white">
+      {contextHolder}
       <section className="w-full bg-gradient-to-b from-[#e6f7ff] to-white px-4 py-16">
         <div className="container mx-auto max-w-6xl text-center">
           <Title level={1} style={{ color: "#2c3e50" }}>
@@ -140,20 +171,19 @@ export default function HelpCenterPage() {
                   <Form.Item
                     name="category"
                     label="Help Category"
-                    rules={[{ required: true }]}
+                    rules={[
+                      { required: true, message: "Please select a category" },
+                    ]}
                   >
-                    <Select>
-                      <Option value="account">Account & Access</Option>
-                      <Option value="devices">Device Management</Option>
-                      <Option value="platform">Platform Usage</Option>
-                      <Option value="other">Other</Option>
-                    </Select>
+                    <Select options={supportCategories} />
                   </Form.Item>
 
                   <Form.Item
                     name="subject"
                     label="Subject"
-                    rules={[{ required: true }]}
+                    rules={[
+                      { required: true, message: "Please enter a subject" },
+                    ]}
                   >
                     <Input placeholder="Brief description of your question" />
                   </Form.Item>
@@ -161,7 +191,16 @@ export default function HelpCenterPage() {
                   <Form.Item
                     name="description"
                     label="Description"
-                    rules={[{ required: true }]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please provide a description",
+                      },
+                      {
+                        min: 10,
+                        message: "Description must be at least 10 characters",
+                      },
+                    ]}
                   >
                     <TextArea
                       rows={4}
@@ -172,13 +211,14 @@ export default function HelpCenterPage() {
                   <Form.Item
                     name="priority"
                     label="Priority"
-                    rules={[{ required: true }]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please select a priority level",
+                      },
+                    ]}
                   >
-                    <Select>
-                      <Option value="low">Low - General Question</Option>
-                      <Option value="medium">Medium - Need Help Soon</Option>
-                      <Option value="high">High - Urgent Assistance</Option>
-                    </Select>
+                    <Select options={priorityLevels} />
                   </Form.Item>
 
                   <Form.Item>
@@ -188,8 +228,11 @@ export default function HelpCenterPage() {
                       size="large"
                       style={{ backgroundColor: "#1890ff" }}
                       className="w-full"
+                      loading={mutation.isPending}
                     >
-                      Submit Support Request
+                      {mutation.isPending
+                        ? "Submitting..."
+                        : "Submit Support Request"}
                     </Button>
                   </Form.Item>
                 </Form>
