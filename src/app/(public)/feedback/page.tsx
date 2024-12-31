@@ -14,6 +14,7 @@ import {
   Radio,
   Space,
   Tag,
+  message,
 } from "antd";
 import {
   SmileOutlined,
@@ -21,37 +22,46 @@ import {
   BulbOutlined,
   StarOutlined,
 } from "@ant-design/icons";
+import { api } from "~/trpc/react";
+import type { Feedback, FeedbackCategory } from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-interface FeedbackFormValues {
-  category: string;
-  satisfaction: number;
-  usability: number;
-  features: string[];
-  improvements: string;
-  recommendation: boolean;
-  additionalComments?: string;
-}
+type FeedbackFormValues = Omit<Feedback, "status">;
 
 export default function FeedbackPage() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<FeedbackFormValues>();
+  const [messageApi, contextHolder] = message.useMessage();
 
-  const onFinish = (values: FeedbackFormValues) => {
-    console.log("Feedback:", values);
-    // Will use the same API endpoint with type: 'feedback'
-    form.resetFields();
+  const mutation = api.queries.submitFeedback.useMutation({
+    onSuccess: () => {
+      messageApi.success("Thank you for your feedback!");
+      form.resetFields();
+    },
+    onError: (error) => {
+      messageApi.error("Failed to submit feedback. Please try again.");
+      console.error("Form submission error:", error);
+    },
+  });
+
+  const onFinish = (values: Omit<FeedbackFormValues, "status">) => {
+    const feedbackData: Feedback = {
+      ...values,
+      status: "NEW",
+    };
+
+    mutation.mutate(feedbackData);
   };
 
   const feedbackCategories = [
-    { label: "User Interface", value: "ui" },
-    { label: "Features & Functionality", value: "features" },
-    { label: "Performance", value: "performance" },
-    { label: "Documentation", value: "documentation" },
-    { label: "General Experience", value: "general" },
-  ];
+    { label: "User Interface", value: "UI" },
+    { label: "Features & Functionality", value: "FEATURES" },
+    { label: "Performance", value: "PERFORMANCE" },
+    { label: "Documentation", value: "DOCUMENTATION" },
+    { label: "General Experience", value: "GENERAL" },
+  ] satisfies { label: string; value: FeedbackCategory }[];
 
   const featuresList = [
     "Device Management",
@@ -64,6 +74,7 @@ export default function FeedbackPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {contextHolder}
       <section className="w-full bg-gradient-to-b from-[#f0f5ff] to-white px-4 py-16">
         <div className="container mx-auto max-w-6xl text-center">
           <Title level={1} className="text-gray-800">
@@ -89,7 +100,9 @@ export default function FeedbackPage() {
                 <Form.Item
                   name="category"
                   label="What area would you like to give feedback on?"
-                  rules={[{ required: true }]}
+                  rules={[
+                    { required: true, message: "Please select a category" },
+                  ]}
                 >
                   <Select options={feedbackCategories} size="large" />
                 </Form.Item>
@@ -102,7 +115,12 @@ export default function FeedbackPage() {
                       <SmileOutlined className="text-blue-400" />
                     </span>
                   }
-                  rules={[{ required: true }]}
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please rate your satisfaction",
+                    },
+                  ]}
                 >
                   <Rate allowHalf />
                 </Form.Item>
@@ -115,7 +133,9 @@ export default function FeedbackPage() {
                       <StarOutlined className="text-yellow-400" />
                     </span>
                   }
-                  rules={[{ required: true }]}
+                  rules={[
+                    { required: true, message: "Please rate the usability" },
+                  ]}
                 >
                   <Rate allowHalf />
                 </Form.Item>
@@ -123,6 +143,12 @@ export default function FeedbackPage() {
                 <Form.Item
                   name="features"
                   label="Which features do you find most valuable?"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please select at least one feature",
+                    },
+                  ]}
                 >
                   <Select
                     mode="multiple"
@@ -145,7 +171,17 @@ export default function FeedbackPage() {
                       <BulbOutlined className="text-yellow-500" />
                     </span>
                   }
-                  rules={[{ required: true }]}
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please provide improvement suggestions",
+                    },
+                    {
+                      min: 10,
+                      message:
+                        "Improvement details must be at least 10 characters",
+                    },
+                  ]}
                 >
                   <TextArea
                     rows={4}
@@ -156,7 +192,9 @@ export default function FeedbackPage() {
                 <Form.Item
                   name="recommendation"
                   label="Would you recommend the Zelene Platform to others?"
-                  rules={[{ required: true }]}
+                  rules={[
+                    { required: true, message: "Please select an option" },
+                  ]}
                 >
                   <Radio.Group>
                     <Space direction="vertical">
@@ -166,10 +204,7 @@ export default function FeedbackPage() {
                   </Radio.Group>
                 </Form.Item>
 
-                <Form.Item
-                  name="additionalComments"
-                  label="Additional Comments"
-                >
+                <Form.Item name="comments" label="Additional Comments">
                   <TextArea
                     rows={4}
                     placeholder="Any other thoughts you'd like to share?"
@@ -184,8 +219,9 @@ export default function FeedbackPage() {
                     icon={<HeartOutlined />}
                     className="w-full"
                     style={{ backgroundColor: "#722ed1" }}
+                    loading={mutation.isPending}
                   >
-                    Submit Feedback
+                    {mutation.isPending ? "Submitting..." : "Submit Feedback"}
                   </Button>
                 </Form.Item>
               </Form>

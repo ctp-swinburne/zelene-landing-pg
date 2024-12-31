@@ -82,3 +82,113 @@ model VerificationToken {
 
     @@unique([identifier, token])
 }
+
+// for queries module
+
+// Enum definitions for various statuses and types
+enum QueryStatus {
+    NEW
+    IN_PROGRESS
+    RESOLVED
+    CANCELLED
+}
+
+enum InquiryType {
+    PARTNERSHIP
+    SALES
+    MEDIA
+    GENERAL
+}
+
+enum FeedbackCategory {
+    UI
+    FEATURES
+    PERFORMANCE
+    DOCUMENTATION
+    GENERAL
+}
+
+enum IssueType {
+    DEVICE
+    PLATFORM
+    CONNECTIVITY
+    SECURITY
+    OTHER
+}
+
+enum IssueSeverity {
+    LOW
+    MEDIUM
+    HIGH
+    CRITICAL
+}
+
+enum SupportCategory {
+    ACCOUNT
+    DEVICES
+    PLATFORM
+    OTHER
+}
+
+enum SupportPriority {
+    LOW
+    MEDIUM
+    HIGH
+}
+
+// Contact form model
+model ContactQuery {
+    id           String      @id @default(cuid())
+    createdAt    DateTime    @default(now())
+    updatedAt    DateTime    @updatedAt
+    name         String
+    organization String
+    email        String
+    phone        String
+    inquiryType  InquiryType
+    message      String      @db.Text
+    status       QueryStatus @default(NEW)
+}
+
+// Feedback form model
+model Feedback {
+    id             String           @id @default(cuid())
+    createdAt      DateTime         @default(now())
+    updatedAt      DateTime         @updatedAt
+    category       FeedbackCategory
+    satisfaction   Float
+    usability      Float
+    features       String[]
+    improvements   String           @db.Text
+    recommendation Boolean
+    comments       String?          @db.Text
+    status         QueryStatus      @default(NEW)
+}
+
+// Support request model
+model SupportRequest {
+    id          String          @id @default(cuid())
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+    category    SupportCategory
+    subject     String
+    description String          @db.Text
+    priority    SupportPriority
+    status      QueryStatus     @default(NEW)
+}
+
+// Technical issue model
+model TechnicalIssue {
+    id               String        @id @default(cuid())
+    createdAt        DateTime      @default(now())
+    updatedAt        DateTime      @updatedAt
+    deviceId         String?
+    issueType        IssueType
+    severity         IssueSeverity
+    title            String
+    description      String        @db.Text
+    stepsToReproduce String        @db.Text
+    expectedBehavior String        @db.Text
+    attachments      String[] // URLs to stored attachments
+    status           QueryStatus   @default(NEW)
+}
