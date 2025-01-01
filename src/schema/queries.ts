@@ -94,6 +94,16 @@ export const TechnicalIssueSchema = z.object({
   status: QueryStatusSchema.optional().default("NEW"),
 });
 
+export const FileUploadSchema = z.object({
+  filename: z.string(),
+  contentType: z.string(),
+  size: z.number(),
+  base64Data: z.string(),
+});
+
+export const TechnicalIssueWithFilesSchema = TechnicalIssueSchema.extend({
+  attachments: z.array(FileUploadSchema).optional(),
+});
 // Type exports
 export type QueryStatus = z.infer<typeof QueryStatusSchema>;
 export type InquiryType = z.infer<typeof InquiryTypeSchema>;
