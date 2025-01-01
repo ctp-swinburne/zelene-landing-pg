@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_PRIVATE_KEY!,
+  process.env.NEXT_PRIVATE_SUPABASE_URL!,
+  process.env.NEXT_PRIVATE_SUPABASE_PRIVATE_KEY!,
 );
 
 type MimeTypeMap = Record<string, string>;
@@ -42,7 +42,7 @@ export const uploadToSupabase = async ({
   const path = `${folder}/${uuidv4()}.${ext}`;
 
   const { error } = await supabase.storage
-    .from(process.env.NEXT_PUBLIC_SUPABASE_BUCKET!)
+    .from(process.env.NEXT_PRIVATE_SUPABASE_BUCKET!)
     .upload(path, buffer, { contentType });
 
   if (error) throw error;

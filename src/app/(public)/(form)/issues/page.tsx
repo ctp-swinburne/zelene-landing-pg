@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import type { UploadFile } from "antd/es/upload/interface";
+import { type UploadFile, type RcFile } from "antd/es/upload/interface";
 import {
   Button,
   Form,
@@ -14,63 +13,199 @@ import {
   Alert,
   Upload,
   Steps,
+  message,
 } from "antd";
 import { UploadOutlined, BugOutlined } from "@ant-design/icons";
-import type { FormInstance } from "antd/es/form";
+import { api } from "~/trpc/react";
+import { useIssueStore } from "~/store/issueForm";
+import { IssueTypeSchema, IssueSeveritySchema } from "~/schema/queries";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 
-type IssueType = "device" | "platform" | "connectivity" | "security" | "other";
-type SeverityLevel = "low" | "medium" | "high" | "critical";
+type IssueType =
+  (typeof IssueTypeSchema.enum)[keyof typeof IssueTypeSchema.enum];
+type IssueSeverity =
+  (typeof IssueSeveritySchema.enum)[keyof typeof IssueSeveritySchema.enum];
 
-interface IssueFormValues {
+interface IssueFormData {
   deviceId?: string;
   issueType: IssueType;
-  severity: SeverityLevel;
+  severity: IssueSeverity;
   title: string;
   description: string;
   stepsToReproduce: string;
   expectedBehavior: string;
-  attachments?: UploadFile[];
 }
 
-interface FormStep {
-  title: string;
-  content: JSX.Element;
+interface IssueSubmitData extends IssueFormData {
+  attachments?: Array<{
+    filename: string;
+    contentType: string;
+    size: number;
+    base64Data: string;
+  }>;
 }
+
+const issueTypes = Object.entries(IssueTypeSchema.enum).map(([value]) => ({
+  label: (() => {
+    switch (value) {
+      case "DEVICE":
+        return "Device - Hardware / Firmware issues";
+      case "PLATFORM":
+        return "Platform - Bugs discovered";
+      case "CONNECTIVITY":
+        return "Network - Connectivity problems";
+      case "SECURITY":
+        return "Security - Potential concerns / problems";
+      case "OTHER":
+        return "Other Technical Issue";
+      default:
+        return value;
+    }
+  })(),
+  value,
+}));
+
+const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
+  ([value]) => ({
+    label: (() => {
+      switch (value) {
+        case "CRITICAL":
+          return "Critical - Service Down/Security Breach";
+        case "HIGH":
+          return "High - Major Feature Unavailable";
+        case "MEDIUM":
+          return "Medium - Feature Degraded";
+        case "LOW":
+          return "Low - Minor Impact";
+        default:
+          return value;
+      }
+    })(),
+    value,
+  }),
+);
 
 export default function ReportIssuePage() {
-  const [form] = Form.useForm<IssueFormValues>();
-  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [form] = Form.useForm<IssueFormData>();
+  const {
+    currentStep,
+    fileList,
+    isSubmitting,
+    setFormData,
+    setFileList,
+    setCurrentStep,
+    setIsSubmitting,
+    reset,
+    getFormData,
+    ...formState
+  } = useIssueStore();
 
-  const onFinish = async (values: IssueFormValues) => {
-    try {
-      console.log("Issue Report:", values);
-      // Will use the same API endpoint with type: 'technical-issue'
+  const submitMutation = api.queries.submitTechnicalIssue.useMutation({
+    onSuccess: () => {
+      message.success("Issue reported successfully");
       form.resetFields();
+      reset();
+    },
+    onError: (error) => {
+      message.error(error.message ?? "Failed to submit issue");
+      setIsSubmitting(false);
+    },
+  });
+
+  const handleFileChange = async (file: UploadFile) => {
+    if (!file.originFileObj) return false;
+
+    const isValidType = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "application/pdf",
+    ].includes(file.type ?? "");
+
+    if (!isValidType) {
+      message.error("You can only upload JPG/PNG/GIF/PDF files!");
+      return false;
+    }
+
+    const isLt5M = (file.size ?? 0) / 1024 / 1024 < 5;
+    if (!isLt5M) {
+      message.error("File must be smaller than 5MB!");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setIsSubmitting(true);
+
+      // Convert files to base64
+      const filePromises = fileList.map(async (file) => {
+        if (!file.originFileObj) return null;
+
+        return new Promise<{
+          filename: string;
+          contentType: string;
+          size: number;
+          base64Data: string;
+        }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const result = reader.result;
+            if (typeof result !== "string") return;
+
+            const base64Data = result.split(",")[1];
+            if (!base64Data) return;
+
+            resolve({
+              filename: file.name,
+              contentType: file.type ?? "application/octet-stream",
+              size: file.size ?? 0,
+              base64Data,
+            });
+          };
+          reader.readAsDataURL(file.originFileObj as Blob);
+        });
+      });
+
+      const attachments = (await Promise.all(filePromises)).filter(
+        (attachment): attachment is NonNullable<typeof attachment> =>
+          attachment !== null,
+      );
+
+      const formData = getFormData() as IssueFormData;
+      const submitData: IssueSubmitData = {
+        ...formData,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      };
+
+      await submitMutation.mutateAsync(submitData);
     } catch (error) {
       console.error("Failed to submit issue:", error);
-      // You might want to add proper error handling here
+      setIsSubmitting(false);
     }
   };
 
-  const issueTypes = [
-    { label: "Device Malfunction", value: "device" },
-    { label: "Platform Issues", value: "platform" },
-    { label: "Connectivity Problems", value: "connectivity" },
-    { label: "Security Concerns", value: "security" },
-    { label: "Other", value: "other" },
-  ] satisfies Array<{ label: string; value: IssueType }>;
+  const next = async () => {
+    try {
+      const values = await form.validateFields();
+      setFormData(currentStep, values);
+      setCurrentStep(currentStep + 1);
+    } catch {
+      // Form validation will show errors
+    }
+  };
 
-  const severityLevels = [
-    { label: "Low - Minor Impact", value: "low" },
-    { label: "Medium - Moderate Impact", value: "medium" },
-    { label: "High - Significant Impact", value: "high" },
-    { label: "Critical - Service Disruption", value: "critical" },
-  ] satisfies Array<{ label: string; value: SeverityLevel }>;
+  const prev = () => {
+    const values = form.getFieldsValue();
+    setFormData(currentStep, values);
+    setCurrentStep(currentStep - 1);
+  };
 
-  const steps: FormStep[] = [
+  const steps = [
     {
       title: "Issue Details",
       content: (
@@ -121,7 +256,14 @@ export default function ReportIssuePage() {
           <Form.Item
             name="description"
             label="Detailed Description"
-            rules={[{ required: true, message: "Please describe the issue" }]}
+            rules={[
+              {
+                required: true,
+                message:
+                  "Please describe the issue with at least 10 characters",
+                min: 10,
+              },
+            ]}
           >
             <TextArea rows={4} placeholder="Describe the issue in detail" />
           </Form.Item>
@@ -130,7 +272,12 @@ export default function ReportIssuePage() {
             name="stepsToReproduce"
             label="Steps to Reproduce"
             rules={[
-              { required: true, message: "Please provide reproduction steps" },
+              {
+                required: true,
+                message:
+                  "Please provide reproduction steps with at least 10 characters",
+                min: 10,
+              },
             ]}
           >
             <TextArea
@@ -143,7 +290,12 @@ export default function ReportIssuePage() {
             name="expectedBehavior"
             label="Expected Behavior"
             rules={[
-              { required: true, message: "Please describe expected behavior" },
+              {
+                required: true,
+                message:
+                  "Please describe expected behavior with at least 10 characters",
+                min: 10,
+              },
             ]}
           >
             <TextArea rows={4} placeholder="What should happen instead?" />
@@ -155,28 +307,24 @@ export default function ReportIssuePage() {
       title: "Additional Info",
       content: (
         <>
-          <Form.Item name="attachments" label="Attachments">
-            <Upload>
-              <Button icon={<UploadOutlined />}>Add Screenshots or Logs</Button>
+          <Form.Item label="Attachments">
+            <Upload
+              multiple
+              fileList={fileList}
+              onChange={({ fileList }) => setFileList(fileList)}
+              beforeUpload={handleFileChange}
+              maxCount={5}
+            >
+              <Button icon={<UploadOutlined />}>Add Files (Max: 5)</Button>
             </Upload>
+            <div className="mt-2 text-sm text-gray-500">
+              Supported formats: JPG, PNG, GIF, PDF (Max: 5MB each)
+            </div>
           </Form.Item>
         </>
       ),
     },
   ];
-
-  const next = async () => {
-    try {
-      await form.validateFields();
-      setCurrentStep((prev) => prev + 1);
-    } catch (error) {
-      console.error("Validation failed:", error);
-    }
-  };
-
-  const prev = () => {
-    setCurrentStep((prev) => prev - 1);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -186,8 +334,7 @@ export default function ReportIssuePage() {
             Report Technical Issue
           </Title>
           <Paragraph className="mx-auto max-w-2xl text-lg text-gray-600">
-            Help us improve by reporting any technical issues you encounter with
-            the Zelene Platform
+            Help us improve by reporting any technical issues you encounter
           </Paragraph>
         </div>
       </section>
@@ -204,11 +351,7 @@ export default function ReportIssuePage() {
         <Card>
           <Steps current={currentStep} items={steps} className="mb-8" />
 
-          <Form<IssueFormValues>
-            form={form}
-            layout="vertical"
-            onFinish={onFinish}
-          >
+          <Form form={form} layout="vertical" initialValues={formState}>
             <div>{steps[currentStep]?.content}</div>
 
             <div className="mt-8 flex justify-between">
@@ -222,8 +365,9 @@ export default function ReportIssuePage() {
                 <Button
                   type="primary"
                   danger
-                  htmlType="submit"
+                  onClick={() => handleSubmit()}
                   icon={<BugOutlined />}
+                  loading={Boolean(isSubmitting || submitMutation.isPending)}
                 >
                   Submit Issue Report
                 </Button>
