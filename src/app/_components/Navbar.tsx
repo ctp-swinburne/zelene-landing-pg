@@ -1,18 +1,16 @@
 "use client";
+
 import Link from "next/link";
-import { Layout, Menu, Button, Drawer } from "antd";
-import { MenuOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { Layout, Menu, Button } from "antd";
 import { signIn, useSession } from "next-auth/react";
 import { type Session } from "next-auth";
-import { useRouter } from "next/navigation"; // Changed this line
+import { useRouter } from "next/navigation";
 
 const { Header } = Layout;
 
 export function Navbar() {
   const router = useRouter();
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const menuItems = [
     { key: "home", label: "Home", href: "/" },
@@ -23,7 +21,7 @@ export function Navbar() {
   const handleAuthClick = async () => {
     try {
       if (session) {
-        router.push("/auth/signout"); // Changed to use router.push without await
+        router.push("/auth/signout");
       } else {
         await signIn();
       }
@@ -59,46 +57,39 @@ export function Navbar() {
         <Link href="/" className="text-xl font-bold">
           Zelene
         </Link>
-
-        {/* Desktop Navigation */}
-        <div className="hidden items-center gap-4 md:flex">
-          <Menu mode="horizontal" selectedKeys={[]} style={{ border: "none" }}>
+        <div className="flex items-center gap-4">
+          <Menu
+            mode="horizontal"
+            selectedKeys={[]}
+            style={{
+              border: "none",
+              lineHeight: "inherit",
+            }}
+            className="bg-transparent"
+          >
             {menuItems.map((item) => (
-              <Menu.Item key={item.key}>
-                <Link href={item.href}>{item.label}</Link>
+              <Menu.Item
+                key={item.key}
+                style={{
+                  padding: "0 20px",
+                  marginRight: "8px",
+                  borderBottom: "none",
+                }}
+              >
+                <Link
+                  href={item.href}
+                  style={{
+                    textDecoration: "none",
+                    position: "relative",
+                  }}
+                >
+                  {item.label}
+                </Link>
               </Menu.Item>
             ))}
           </Menu>
           <AuthButton session={session} />
         </div>
-
-        {/* Mobile Menu Button */}
-        <Button
-          className="md:hidden"
-          type="text"
-          icon={<MenuOutlined />}
-          onClick={() => setMobileDrawerOpen(true)}
-        />
-
-        {/* Mobile Drawer */}
-        <Drawer
-          title="Menu"
-          placement="right"
-          onClose={() => setMobileDrawerOpen(false)}
-          open={mobileDrawerOpen}
-          bodyStyle={{ padding: 0 }}
-        >
-          <Menu mode="vertical" style={{ border: "none" }}>
-            {menuItems.map((item) => (
-              <Menu.Item key={item.key}>
-                <Link href={item.href}>{item.label}</Link>
-              </Menu.Item>
-            ))}
-            <Menu.Item key="auth">
-              <AuthButton session={session} className="w-full" />
-            </Menu.Item>
-          </Menu>
-        </Drawer>
       </div>
     </Header>
   );
