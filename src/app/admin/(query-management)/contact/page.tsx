@@ -15,7 +15,7 @@ const INQUIRY_TYPES = {
   GENERAL: "GENERAL",
 } as const;
 
-export const QUERY_STATUSES = {
+const QUERY_STATUSES = {
   NEW: "NEW",
   IN_PROGRESS: "IN_PROGRESS",
   RESOLVED: "RESOLVED",

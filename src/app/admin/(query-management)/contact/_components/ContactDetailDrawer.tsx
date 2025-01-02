@@ -14,10 +14,15 @@ import {
 } from "antd";
 import type { ContactQuery } from "../page";
 import type { QueryStatus } from "~/schema/queries";
-import { QUERY_STATUSES } from "../page";
 
 const { TextArea } = Input;
 
+const QUERY_STATUSES = {
+  NEW: "NEW",
+  IN_PROGRESS: "IN_PROGRESS",
+  RESOLVED: "RESOLVED",
+  CANCELLED: "CANCELLED",
+} as const;
 interface ContactDetailDrawerProps {
   query: ContactQuery | null;
   visible: boolean;
