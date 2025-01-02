@@ -1,3 +1,4 @@
+//admin/_components/Adminheader.tsx
 "use client";
 
 import { Layout, Input, Badge, Avatar, Space } from "antd";

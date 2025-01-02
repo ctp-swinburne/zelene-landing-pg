@@ -1,3 +1,4 @@
+//admin/_components/AdminSidebar.tsx
 "use client";
 
 import { Layout, Menu } from "antd";

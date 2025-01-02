@@ -1,3 +1,4 @@
+//admin/_components/DashboardStats.tsx
 "use client";
 
 import { Card, Row, Col, Statistic } from "antd";
