@@ -48,3 +48,18 @@ export const uploadToSupabase = async ({
   if (error) throw error;
   return path;
 };
+
+export const getPublicUrl = async (
+  path: string,
+  expiresIn: number = 60 * 60, // Default 1 hour in seconds
+): Promise<string> => {
+  const { data } = await supabase.storage
+    .from(process.env.NEXT_PRIVATE_SUPABASE_BUCKET!)
+    .createSignedUrl(path, expiresIn);
+
+  if (!data?.signedUrl) {
+    throw new Error("Failed to generate signed URL");
+  }
+
+  return data.signedUrl;
+};
