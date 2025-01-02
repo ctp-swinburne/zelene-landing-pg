@@ -6,7 +6,7 @@ import { Table, Tag, Card, Select, Button, Space } from "antd";
 import type { TableProps } from "antd";
 import { FilterFilled, SearchOutlined, StarFilled } from "@ant-design/icons";
 import FeedbackDetailDrawer from "./_components/FeedbackDetailDrawer";
-
+import FeedbackMetrics from "./_components/FeedbackMetrics";
 const FeedbackCategory = {
   UI: "UI",
   FEATURES: "FEATURES",
@@ -226,6 +226,8 @@ export default function FeedbackPage() {
 
   return (
     <div className="space-y-4">
+      <FeedbackMetrics feedbackData={mockData} />
+
       <Card>
         <div className="mb-4 flex items-center justify-between">
           <div>
