@@ -5,6 +5,7 @@ import { type NextPage } from "next";
 import { Card, Row, Col, Alert, Space } from "antd";
 import Link from "next/link";
 import DashboardStats from "./_components/DashboardStats";
+import { api } from "~/trpc/react";
 
 const SupportItem = ({
   title,
@@ -29,6 +30,10 @@ const SupportItem = ({
 );
 
 const AdminPage: NextPage = () => {
+  const { data: newItemsCounts } = api.adminQueryView.getQueryCounts.useQuery({
+    status: "NEW",
+  });
+  console.log(newItemsCounts);
   const notifications = [
     {
       type: "error" as const,
@@ -49,25 +54,33 @@ const AdminPage: NextPage = () => {
           title: "Contact Queries",
           desc: "Partnership, Sales, Media & General",
           path: "/admin/contact",
-          badge: "8 unread",
+          badge: newItemsCounts?.contacts
+            ? `${newItemsCounts.contacts} unread`
+            : "0 unread",
         },
         {
           title: "Technical Issues",
           desc: "Device, Platform & Security reports",
           path: "/admin/issues",
-          badge: "3 critical",
+          badge: newItemsCounts?.technicalIssues
+            ? `${newItemsCounts.technicalIssues} unread`
+            : "0 unread",
         },
         {
           title: "User Feedback",
           desc: "Platform & feature feedback",
           path: "/admin/feedback",
-          badge: "12 new",
+          badge: newItemsCounts?.feedback
+            ? `${newItemsCounts.feedback} unread`
+            : "0 unread",
         },
         {
           title: "Help Center",
           desc: "Support documentation & guides",
           path: "/admin/help",
-          badge: "2 drafts",
+          badge: newItemsCounts?.supportRequests
+            ? `${newItemsCounts.supportRequests} unread`
+            : "0 unread",
         },
       ],
     },
