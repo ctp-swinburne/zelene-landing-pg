@@ -10,14 +10,20 @@ const PaginationSchema = z.object({
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]).optional(),
 });
 
+const StatusSchema = z.object({
+  status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]).optional(),
+});
+interface QueryCounts {
+  contacts: number;
+  feedback: number;
+  supportRequests: number;
+  technicalIssues: number;
+}
+
 export const adminQueryRouter = createTRPCRouter({
   getContacts: adminProcedure
     .input(PaginationSchema)
     .query(async ({ ctx, input }) => {
-      if (ctx.session?.user?.role !== "ADMIN") {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
       const where = input.status ? { status: input.status } : {};
       const [items, count] = await Promise.all([
         ctx.db.contactQuery.findMany({
@@ -39,10 +45,6 @@ export const adminQueryRouter = createTRPCRouter({
   getFeedback: adminProcedure
     .input(PaginationSchema)
     .query(async ({ ctx, input }) => {
-      if (ctx.session?.user?.role !== "ADMIN") {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
       const where = input.status ? { status: input.status } : {};
       const [items, count] = await Promise.all([
         ctx.db.feedback.findMany({
@@ -75,10 +77,6 @@ export const adminQueryRouter = createTRPCRouter({
   getSupportRequests: adminProcedure
     .input(PaginationSchema)
     .query(async ({ ctx, input }) => {
-      if (ctx.session?.user?.role !== "ADMIN") {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
       const where = input.status ? { status: input.status } : {};
       const [items, count] = await Promise.all([
         ctx.db.supportRequest.findMany({
@@ -100,10 +98,6 @@ export const adminQueryRouter = createTRPCRouter({
   getTechnicalIssues: adminProcedure
     .input(PaginationSchema)
     .query(async ({ ctx, input }) => {
-      if (ctx.session?.user?.role !== "ADMIN") {
-        throw new TRPCError({ code: "UNAUTHORIZED" });
-      }
-
       const where = input.status ? { status: input.status } : {};
       const [items, count] = await Promise.all([
         ctx.db.technicalIssue.findMany({
@@ -129,6 +123,30 @@ export const adminQueryRouter = createTRPCRouter({
         items: itemsWithSignedUrls,
         totalPages: Math.ceil(count / input.limit),
         currentPage: input.page,
+      };
+    }),
+  getQueryCounts: adminProcedure
+    .input(StatusSchema)
+    .query(async ({ ctx, input }): Promise<QueryCounts> => {
+      const where = input.status ? { status: input.status } : {};
+
+      const [
+        contactCount,
+        feedbackCount,
+        supportRequestCount,
+        technicalIssueCount,
+      ] = await Promise.all([
+        ctx.db.contactQuery.count({ where }),
+        ctx.db.feedback.count({ where }),
+        ctx.db.supportRequest.count({ where }),
+        ctx.db.technicalIssue.count({ where }),
+      ]);
+
+      return {
+        contacts: contactCount,
+        feedback: feedbackCount,
+        supportRequests: supportRequestCount,
+        technicalIssues: technicalIssueCount,
       };
     }),
 });
