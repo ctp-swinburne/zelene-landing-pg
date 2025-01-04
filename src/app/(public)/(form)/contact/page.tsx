@@ -20,12 +20,15 @@ import {
   GlobalOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type { ContactQuery } from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
+
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
 
 type InquiryType = "PARTNERSHIP" | "SALES" | "MEDIA" | "GENERAL";
 type QueryStatus = "NEW" | "IN_PROGRESS" | "RESOLVED" | "CANCELLED";
@@ -38,16 +41,21 @@ interface ContactFormValues {
   inquiryType: InquiryType;
   message: string;
   status: QueryStatus;
+  captchaToken?: string;
 }
 
 export default function ContactPage() {
   const [form] = Form.useForm<ContactFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const mutation = api.queries.submitContact.useMutation({
     onSuccess: () => {
       messageApi.success("Your message has been sent successfully!");
       form.resetFields();
+      setShowCaptcha(false);
+      setCaptchaToken(null);
     },
     onError: (error) => {
       messageApi.error("Failed to send message. Please try again.");
@@ -56,8 +64,12 @@ export default function ContactPage() {
   });
 
   const onFinish = (values: ContactFormValues) => {
-    // Since our form values already match the ContactQuery type, we can pass them directly
-    const contactData: ContactQuery = values;
+    if (!captchaToken) {
+      setShowCaptcha(true);
+      return;
+    }
+
+    const contactData: ContactQuery = { ...values, captchaToken };
 
     mutation.mutate(contactData);
   };
@@ -206,6 +218,20 @@ export default function ContactPage() {
                     size="large"
                   />
                 </Form.Item>
+
+                {showCaptcha && (
+                  <Form.Item
+                    name="captchaToken"
+                    rules={[
+                      { required: true, message: "Please complete the captcha" },
+                    ]}
+                  >
+                    <ReCAPTCHA
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                      onChange={(token) => setCaptchaToken(token)}
+                    />
+                  </Form.Item>
+                )}
 
                 <Form.Item>
                   <Button

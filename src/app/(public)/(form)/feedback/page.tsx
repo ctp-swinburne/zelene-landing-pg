@@ -22,6 +22,7 @@ import {
   BulbOutlined,
   StarOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type { Feedback, FeedbackCategory } from "~/schema/queries";
 
@@ -29,16 +30,22 @@ const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-type FeedbackFormValues = Omit<Feedback, "status">;
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
+
+type FeedbackFormValues = Omit<Feedback, "status" | "captchaToken">;
 
 export default function FeedbackPage() {
   const [form] = Form.useForm<FeedbackFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const mutation = api.queries.submitFeedback.useMutation({
     onSuccess: () => {
       messageApi.success("Thank you for your feedback!");
       form.resetFields();
+      setShowCaptcha(false);
+      setCaptchaToken(null);
     },
     onError: (error) => {
       messageApi.error("Failed to submit feedback. Please try again.");
@@ -46,10 +53,16 @@ export default function FeedbackPage() {
     },
   });
 
-  const onFinish = (values: Omit<FeedbackFormValues, "status">) => {
+  const onFinish = (values: FeedbackFormValues) => {
+    if (!captchaToken) {
+      setShowCaptcha(true);
+      return;
+    }
+
     const feedbackData: Feedback = {
       ...values,
       status: "NEW",
+      captchaToken,
     };
 
     mutation.mutate(feedbackData);
@@ -210,6 +223,20 @@ export default function FeedbackPage() {
                     placeholder="Any other thoughts you'd like to share?"
                   />
                 </Form.Item>
+
+                {showCaptcha && (
+                  <Form.Item
+                    name="captchaToken"
+                    rules={[
+                      { required: true, message: "Please complete the captcha" },
+                    ]}
+                  >
+                    <ReCAPTCHA
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                      onChange={(token) => setCaptchaToken(token)}
+                    />
+                  </Form.Item>
+                )}
 
                 <Form.Item>
                   <Button

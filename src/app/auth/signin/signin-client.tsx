@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { type BuiltInProviderType } from "next-auth/providers";
 import { type LiteralUnion, getProviders, signIn } from "next-auth/react";
 import { z } from "zod";
@@ -18,8 +18,13 @@ import {
   Skeleton,
 } from "antd";
 import { useSearchParams, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 
 const { Title, Text, Paragraph } = Typography;
+
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
+  ssr: false,
+});
 
 const signInSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -59,6 +64,9 @@ export default function SignInClient() {
 
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(true);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -86,6 +94,11 @@ export default function SignInClient() {
   }, []);
 
   const onSubmit = async (data: SignInSchema) => {
+    if (!captchaToken) {
+      setShowCaptcha(true);
+      return;
+    }
+
     try {
       const result = await signIn("credentials", {
         username: data.username,
@@ -100,12 +113,22 @@ export default function SignInClient() {
             ? "Invalid username or password"
             : "Something went wrong",
         );
+        // Reset CAPTCHA if there's an error
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset();
+          setCaptchaToken(null);
+        }
       } else {
         message.success("Signed in successfully!");
         window.location.href = result?.url ?? "/";
       }
     } catch (error) {
       message.error("An unexpected error occurred");
+      // Reset CAPTCHA if there's an error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setCaptchaToken(null);
+      }
     }
   };
 
@@ -209,6 +232,20 @@ export default function SignInClient() {
               >
                 <Input.Password />
               </Form.Item>
+              {showCaptcha && (
+                <Form.Item
+                  name="captchaToken"
+                  rules={[
+                    { required: true, message: "Please complete the captcha" },
+                  ]}
+                >
+                  <ReCAPTCHA
+                    ref={recaptchaRef}
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                    onChange={(token) => setCaptchaToken(token)}
+                  />
+                </Form.Item>
+              )}
               <Form.Item>
                 <Button type="primary" htmlType="submit" block>
                   Sign in with username

@@ -26,6 +26,7 @@ export default function RegisterPage() {
     },
     onError: (error) => {
       message.error(error.message);
+      form.resetFields(["captchaToken"]); // Reset captcha field on error
     },
   });
 
@@ -44,6 +45,7 @@ export default function RegisterPage() {
     } catch (error) {
       if (error instanceof Error) {
         console.error("Validation failed:", error);
+        form.resetFields(["captchaToken"]); // Reset captcha field on validation error
       }
     }
   };

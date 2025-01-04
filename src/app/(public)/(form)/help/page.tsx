@@ -22,6 +22,7 @@ import {
   BookOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type {
   SupportRequest,
@@ -34,17 +35,23 @@ const { TextArea } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
 
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
+
 type SupportRequestValues = Omit<SupportRequest, "status">;
 
 export default function HelpCenterPage() {
   const [form] = Form.useForm<SupportRequestValues>();
   const [searchQuery, setSearchQuery] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   const mutation = api.queries.submitSupportRequest.useMutation({
     onSuccess: () => {
       messageApi.success("Support request submitted successfully!");
       form.resetFields();
+      setShowCaptcha(false);
+      setCaptchaToken(null);
     },
     onError: (error) => {
       messageApi.error("Failed to submit support request. Please try again.");
@@ -53,9 +60,15 @@ export default function HelpCenterPage() {
   });
 
   const onFinish = (values: Omit<SupportRequestValues, "status">) => {
+    if (!captchaToken) {
+      setShowCaptcha(true);
+      return;
+    }
+
     const supportData: SupportRequest = {
       ...values,
       status: "NEW",
+      captchaToken,
     };
 
     mutation.mutate(supportData);
@@ -220,6 +233,20 @@ export default function HelpCenterPage() {
                   >
                     <Select options={priorityLevels} />
                   </Form.Item>
+
+                  {showCaptcha && (
+                    <Form.Item
+                      name="captchaToken"
+                      rules={[
+                        { required: true, message: "Please complete the captcha" },
+                      ]}
+                    >
+                      <ReCAPTCHA
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                        onChange={(token) => setCaptchaToken(token)}
+                      />
+                    </Form.Item>
+                  )}
 
                   <Form.Item>
                     <Button

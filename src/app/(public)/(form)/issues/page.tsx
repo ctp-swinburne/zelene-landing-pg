@@ -1,6 +1,6 @@
 "use client";
 
-import { type UploadFile, type RcFile } from "antd/es/upload/interface";
+import { type UploadFile } from "antd/es/upload/interface";
 import {
   Button,
   Form,
@@ -19,9 +19,13 @@ import { UploadOutlined, BugOutlined } from "@ant-design/icons";
 import { api } from "~/trpc/react";
 import { useIssueStore } from "~/store/issueForm";
 import { IssueTypeSchema, IssueSeveritySchema } from "~/schema/queries";
+import dynamic from "next/dynamic";
+import { useState } from "react";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
+
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
 
 type IssueType =
   (typeof IssueTypeSchema.enum)[keyof typeof IssueTypeSchema.enum];
@@ -36,6 +40,7 @@ interface IssueFormData {
   description: string;
   stepsToReproduce: string;
   expectedBehavior: string;
+  captchaToken?: string;
 }
 
 interface IssueSubmitData extends IssueFormData {
@@ -89,6 +94,8 @@ const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
 
 export default function ReportIssuePage() {
   const [form] = Form.useForm<IssueFormData>();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const {
     currentStep,
     fileList,
@@ -107,6 +114,7 @@ export default function ReportIssuePage() {
       message.success("Issue reported successfully");
       form.resetFields();
       reset();
+      setCurrentStep(0); // Reset to the first step
     },
     onError: (error) => {
       message.error(error.message ?? "Failed to submit issue");
@@ -180,6 +188,7 @@ export default function ReportIssuePage() {
       const submitData: IssueSubmitData = {
         ...formData,
         attachments: attachments.length > 0 ? attachments : undefined,
+        captchaToken: captchaToken ?? undefined,
       };
 
       await submitMutation.mutateAsync(submitData);
@@ -321,6 +330,20 @@ export default function ReportIssuePage() {
               Supported formats: JPG, PNG, GIF, PDF (Max: 5MB each)
             </div>
           </Form.Item>
+
+          {showCaptcha && (
+            <Form.Item
+              name="captchaToken"
+              rules={[
+                { required: true, message: "Please complete the captcha" },
+              ]}
+            >
+              <ReCAPTCHA
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                onChange={(token) => setCaptchaToken(token)}
+              />
+            </Form.Item>
+          )}
         </>
       ),
     },
@@ -365,7 +388,13 @@ export default function ReportIssuePage() {
                 <Button
                   type="primary"
                   danger
-                  onClick={() => handleSubmit()}
+                  onClick={() => {
+                    if (!captchaToken) {
+                      setShowCaptcha(true);
+                      return;
+                    }
+                    handleSubmit();
+                  }}
                   icon={<BugOutlined />}
                   loading={Boolean(isSubmitting || submitMutation.isPending)}
                 >
