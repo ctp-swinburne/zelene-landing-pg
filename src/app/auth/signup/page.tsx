@@ -13,6 +13,20 @@ const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
   ssr: false,
 });
 
+interface FieldData {
+  touched?: boolean;
+  value?: unknown;
+  name: (string | number)[];
+}
+
+interface FormValues {
+  username?: string;
+  email?: string;
+  name?: string;
+  password?: string;
+  captchaToken?: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { message } = App.useApp();
@@ -39,19 +53,19 @@ export default function RegisterPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange = (changedFields: any[]) => {
+  const handleFormChange = (changedFields: FieldData[]) => {
     // Don't process if submitting
     if (isSubmitting.current) return;
 
     // Only care about actual value changes
     const changedFieldNames = changedFields
       .filter(field => field.touched && field.value !== undefined)
-      .map(field => field.name[0] as keyof RegisterInput);
+      .map(field => String(field.name[0]) as keyof RegisterInput);
 
     if (changedFieldNames.length === 0) return;
 
     // Get current form values
-    const currentValues = form.getFieldsValue(['username', 'email', 'password', 'name']);
+    const currentValues = form.getFieldsValue() as FormValues;
 
     // Check if any non-captcha field actually changed from last valid values
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
@@ -65,7 +79,7 @@ export default function RegisterPage() {
         hasRealChanges) {
       resetCaptcha();
       // Update last valid values after reset
-      lastValidValues.current = currentValues;
+      lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']);
     }
   };
 
