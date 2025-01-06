@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "~/trpc/react";
 import Image from "next/image";
@@ -18,6 +18,9 @@ export default function RegisterPage() {
   const { message } = App.useApp();
   const [form] = Form.useForm<RegisterInput>();
   const [showCaptcha, setShowCaptcha] = useState(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<RegisterInput>>({});
+  const isSubmitting = useRef(false);
 
   const registerMutation = api.auth.register.useMutation({
     onSuccess: () => {
@@ -26,16 +29,56 @@ export default function RegisterPage() {
     },
     onError: (error) => {
       message.error(error.message);
-      form.resetFields(["captchaToken"]); // Reset captcha field on error
+      resetCaptcha();
+      isSubmitting.current = false;
     },
   });
 
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
+
+  const handleFormChange = (changedFields: any[]) => {
+    // Don't process if submitting
+    if (isSubmitting.current) return;
+
+    // Only care about actual value changes
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => field.name[0] as keyof RegisterInput);
+
+    if (changedFieldNames.length === 0) return;
+
+    // Get current form values
+    const currentValues = form.getFieldsValue(['username', 'email', 'password', 'name']);
+
+    // Check if any non-captcha field actually changed from last valid values
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      return value !== lastValidValues.current[key as keyof RegisterInput] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      // Update last valid values after reset
+      lastValidValues.current = currentValues;
+    }
+  };
+
   const handleSubmit = async () => {
     try {
+      isSubmitting.current = true;
       const values = await form.validateFields();
 
       if (!showCaptcha) {
         setShowCaptcha(true);
+        // Store initial valid values
+        lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']);
+        isSubmitting.current = false;
         return;
       }
 
@@ -43,10 +86,19 @@ export default function RegisterPage() {
       const validatedData = registerInputSchema.parse(values);
       registerMutation.mutate(validatedData);
     } catch (error) {
+      isSubmitting.current = false;
       if (error instanceof Error) {
         console.error("Validation failed:", error);
-        form.resetFields(["captchaToken"]); // Reset captcha field on validation error
+        resetCaptcha();
       }
+    }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      // Update last valid values when captcha is completed
+      lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']);
     }
   };
 
@@ -71,7 +123,11 @@ export default function RegisterPage() {
         </div>
 
         <div className="mt-8">
-          <Form form={form} layout="vertical">
+          <Form 
+            form={form} 
+            layout="vertical"
+            onFieldsChange={handleFormChange}
+          >
             <Form.Item
               label="Username"
               name="username"
@@ -121,10 +177,9 @@ export default function RegisterPage() {
                 ]}
               >
                 <ReCAPTCHA
+                  key={String(shouldResetCaptcha)}
                   sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                  onChange={(token) =>
-                    form.setFieldValue("captchaToken", token)
-                  }
+                  onChange={handleCaptchaChange}
                 />
               </Form.Item>
             )}

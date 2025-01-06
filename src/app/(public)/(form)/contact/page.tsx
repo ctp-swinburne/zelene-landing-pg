@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   Form,
@@ -48,30 +48,86 @@ export default function ContactPage() {
   const [form] = Form.useForm<ContactFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<ContactFormValues>>({});
+  const isSubmitting = useRef(false);
 
   const mutation = api.queries.submitContact.useMutation({
     onSuccess: () => {
       messageApi.success("Your message has been sent successfully!");
       form.resetFields();
       setShowCaptcha(false);
-      setCaptchaToken(null);
+      setShouldResetCaptcha(prev => !prev);
+      lastValidValues.current = {};
+      isSubmitting.current = false;
     },
     onError: (error) => {
       messageApi.error("Failed to send message. Please try again.");
       console.error("Form submission error:", error);
+      resetCaptcha();
+      isSubmitting.current = false;
     },
   });
 
-  const onFinish = (values: ContactFormValues) => {
-    if (!captchaToken) {
-      setShowCaptcha(true);
-      return;
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
+
+  const handleFormChange = (changedFields: any[]) => {
+    if (isSubmitting.current) return;
+
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => field.name[0] as keyof ContactFormValues);
+
+    if (changedFieldNames.length === 0) return;
+
+    const currentValues = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      return value !== lastValidValues.current[key as keyof ContactFormValues] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      lastValidValues.current = currentValues;
     }
+  };
 
-    const contactData: ContactQuery = { ...values, captchaToken };
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      lastValidValues.current = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+    }
+  };
 
-    mutation.mutate(contactData);
+  const onFinish = (values: ContactFormValues) => {
+    try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        lastValidValues.current = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+        isSubmitting.current = false;
+        return;
+      }
+
+      const contactData: ContactQuery = { 
+        ...values,
+        status: "NEW" 
+      };
+
+      mutation.mutate(contactData);
+    } catch (error) {
+      isSubmitting.current = false;
+      console.error("Form submission error:", error);
+      resetCaptcha();
+    }
   };
 
   const inquiryTypes = [
@@ -125,6 +181,7 @@ export default function ContactPage() {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
+                onFieldsChange={handleFormChange}
                 className="mt-4"
               >
                 <Row gutter={16}>
@@ -227,8 +284,9 @@ export default function ContactPage() {
                     ]}
                   >
                     <ReCAPTCHA
+                      key={String(shouldResetCaptcha)}
                       sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                      onChange={(token) => setCaptchaToken(token)}
+                      onChange={handleCaptchaChange}
                     />
                   </Form.Item>
                 )}
@@ -243,7 +301,7 @@ export default function ContactPage() {
                     style={{ backgroundColor: "#0bdc84" }}
                     loading={mutation.isPending}
                   >
-                    {mutation.isPending ? "Sending..." : "Send Message"}
+                    {mutation.isPending ? "Sending..." : (showCaptcha ? "Send Message" : "Continue")}
                   </Button>
                 </Form.Item>
               </Form>

@@ -29,6 +29,7 @@ const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
 const signInSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+  captchaToken: z.string().optional(),
 });
 
 type SignInSchema = z.infer<typeof signInSchema>;
@@ -65,8 +66,9 @@ export default function SignInClient() {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(true);
   const [showCaptcha, setShowCaptcha] = useState(false);
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const recaptchaRef = useRef<ReCAPTCHA | null>(null);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<SignInSchema>>({});
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -93,16 +95,68 @@ export default function SignInClient() {
     };
   }, []);
 
-  const onSubmit = async (data: SignInSchema) => {
-    if (!captchaToken) {
-      setShowCaptcha(true);
-      return;
-    }
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
 
+  const handleFormChange = (changedFields: any[]) => {
+    // Don't process if submitting
+    if (isSubmitting.current) return;
+
+    // Only care about actual value changes
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => field.name[0] as keyof SignInSchema);
+
+    if (changedFieldNames.length === 0) return;
+
+    // Get current form values
+    const currentValues = form.getFieldsValue(['username', 'password']);
+
+    // Check if any non-captcha field actually changed from last valid values
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      return value !== lastValidValues.current[key as keyof SignInSchema] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      // Update last valid values after reset
+      lastValidValues.current = currentValues;
+    }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      // Update last valid values when captcha is completed
+      lastValidValues.current = form.getFieldsValue(['username', 'password']);
+    }
+  };
+
+  const onSubmit = async (data: SignInSchema) => {
     try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        // Store initial valid values
+        lastValidValues.current = form.getFieldsValue(['username', 'password']);
+        isSubmitting.current = false;
+        return;
+      }
+
+      // Validate with Zod schema
+      const validatedData = signInSchema.parse(data);
+
       const result = await signIn("credentials", {
-        username: data.username,
-        password: data.password,
+        username: validatedData.username,
+        password: validatedData.password,
+        captchaToken: validatedData.captchaToken,
         redirect: false,
         callbackUrl: "/",
       });
@@ -113,22 +167,16 @@ export default function SignInClient() {
             ? "Invalid username or password"
             : "Something went wrong",
         );
-        // Reset CAPTCHA if there's an error
-        if (recaptchaRef.current) {
-          recaptchaRef.current.reset();
-          setCaptchaToken(null);
-        }
+        resetCaptcha();
       } else {
         message.success("Signed in successfully!");
         window.location.href = result?.url ?? "/";
       }
     } catch (error) {
       message.error("An unexpected error occurred");
-      // Reset CAPTCHA if there's an error
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
-        setCaptchaToken(null);
-      }
+      resetCaptcha();
+    } finally {
+      isSubmitting.current = false;
     }
   };
 
@@ -217,7 +265,12 @@ export default function SignInClient() {
           )}
 
           {credentialsProvider && (
-            <Form form={form} onFinish={onSubmit} layout="vertical">
+            <Form 
+              form={form} 
+              onFinish={onSubmit} 
+              layout="vertical"
+              onFieldsChange={handleFormChange}
+            >
               <Form.Item
                 label="Username"
                 name="username"
@@ -232,6 +285,7 @@ export default function SignInClient() {
               >
                 <Input.Password />
               </Form.Item>
+
               {showCaptcha && (
                 <Form.Item
                   name="captchaToken"
@@ -240,15 +294,20 @@ export default function SignInClient() {
                   ]}
                 >
                   <ReCAPTCHA
-                    ref={recaptchaRef}
+                    key={String(shouldResetCaptcha)}
                     sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
-                    onChange={(token) => setCaptchaToken(token)}
+                    onChange={handleCaptchaChange}
                   />
                 </Form.Item>
               )}
+
               <Form.Item>
-                <Button type="primary" htmlType="submit" block>
-                  Sign in with username
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  block
+                >
+                  {showCaptcha ? "Sign in" : "Continue"}
                 </Button>
               </Form.Item>
             </Form>
