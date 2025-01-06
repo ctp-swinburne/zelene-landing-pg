@@ -1,4 +1,3 @@
-// admin/contact/page.tsx
 "use client";
 
 import React from "react";
@@ -6,7 +5,11 @@ import { Table, Tag, Card, Select, Button, Space, Badge, Input } from "antd";
 import ContactDetailDrawer from "./_components/ContactDetailDrawer";
 import type { TableProps } from "antd";
 import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
-import type { QueryStatus, InquiryType } from "~/schema/queries";
+import { api } from "~/trpc/react";
+import type { RouterOutputs } from "~/trpc/react";
+import { useState } from "react";
+
+type ContactQuery = RouterOutputs["adminQueryView"]["getContacts"]["items"][0];
 
 const INQUIRY_TYPES = {
   PARTNERSHIP: "PARTNERSHIP",
@@ -22,33 +25,66 @@ const QUERY_STATUSES = {
   CANCELLED: "CANCELLED",
 } as const;
 
-export interface ContactQuery {
-  id: string;
-  name: string;
-  organization: string;
-  email: string;
-  phone: string;
-  inquiryType: InquiryType;
-  message: string;
-  status: QueryStatus;
-  createdAt: string;
-}
-
 const statusColors = {
   NEW: "blue",
   IN_PROGRESS: "orange",
   RESOLVED: "green",
   CANCELLED: "red",
-};
+} as const;
 
 const inquiryTypeColors = {
   PARTNERSHIP: "purple",
   SALES: "green",
   MEDIA: "blue",
   GENERAL: "gray",
-};
+} as const;
 
 export default function ContactQueriesPage() {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<
+    (typeof QUERY_STATUSES)[keyof typeof QUERY_STATUSES] | undefined
+  >();
+
+  // Fetch contacts using tRPC
+  const { data, isLoading } = api.adminQueryView.getContacts.useQuery({
+    page,
+    limit: pageSize,
+    status: statusFilter,
+  });
+
+  // Fetch query counts for each status
+  const { data: allCounts } = api.adminQueryView.getQueryCounts.useQuery({});
+  const { data: newCounts } = api.adminQueryView.getQueryCounts.useQuery({
+    status: "NEW",
+  });
+  const { data: inProgressCounts } = api.adminQueryView.getQueryCounts.useQuery(
+    { status: "IN_PROGRESS" },
+  );
+  const { data: resolvedCounts } = api.adminQueryView.getQueryCounts.useQuery({
+    status: "RESOLVED",
+  });
+  const { data: cancelledCounts } = api.adminQueryView.getQueryCounts.useQuery({
+    status: "CANCELLED",
+  });
+
+  const getCountForStatus = (
+    status: keyof typeof QUERY_STATUSES | undefined,
+  ) => {
+    switch (status) {
+      case "NEW":
+        return newCounts?.contacts ?? 0;
+      case "IN_PROGRESS":
+        return inProgressCounts?.contacts ?? 0;
+      case "RESOLVED":
+        return resolvedCounts?.contacts ?? 0;
+      case "CANCELLED":
+        return cancelledCounts?.contacts ?? 0;
+      default:
+        return allCounts?.contacts ?? 0;
+    }
+  };
+
   const columns: TableProps<ContactQuery>["columns"] = [
     {
       title: "Organization",
@@ -77,7 +113,7 @@ export default function ContactQueriesPage() {
       title: "Type",
       dataIndex: "inquiryType",
       key: "inquiryType",
-      render: (type: InquiryType) => (
+      render: (type: keyof typeof INQUIRY_TYPES) => (
         <Tag color={inquiryTypeColors[type]}>{type}</Tag>
       ),
       filters: Object.values(INQUIRY_TYPES).map((type) => ({
@@ -90,7 +126,7 @@ export default function ContactQueriesPage() {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: QueryStatus) => (
+      render: (status: keyof typeof QUERY_STATUSES) => (
         <Tag color={statusColors[status]}>{status.replace("_", " ")}</Tag>
       ),
       filters: Object.values(QUERY_STATUSES).map((status) => ({
@@ -103,9 +139,8 @@ export default function ContactQueriesPage() {
       title: "Date",
       dataIndex: "createdAt",
       key: "createdAt",
-      render: (date: string) => new Date(date).toLocaleDateString(),
-      sorter: (a, b) =>
-        new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      render: (date: Date) => date.toLocaleDateString(),
+      sorter: (a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
     },
     {
       title: "Action",
@@ -129,36 +164,21 @@ export default function ContactQueriesPage() {
     },
   ];
 
-  const [selectedQuery, setSelectedQuery] = React.useState<ContactQuery | null>(
-    null,
-  );
-  const [drawerVisible, setDrawerVisible] = React.useState(false);
+  const [selectedQuery, setSelectedQuery] = useState<ContactQuery | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   const handleView = (record: ContactQuery) => {
     setSelectedQuery(record);
     setDrawerVisible(true);
   };
 
-  const handleStatusChange = (id: string, status: QueryStatus) => {
-    // Implement status update logic
+  const handleStatusChange = (
+    id: string,
+    status: keyof typeof QUERY_STATUSES,
+  ) => {
+    // TODO: Implement status update mutation
     console.log("Update status:", id, status);
   };
-
-  // Mock data for demonstration
-  const mockData: ContactQuery[] = [
-    {
-      id: "1",
-      name: "John Doe",
-      organization: "Tech Corp",
-      email: "john@techcorp.com",
-      phone: "+1234567890",
-      inquiryType: "PARTNERSHIP",
-      message: "Interested in partnership opportunities",
-      status: "NEW",
-      createdAt: "2024-01-15T10:00:00Z",
-    },
-    // Add more mock data as needed
-  ];
 
   return (
     <div className="space-y-4">
@@ -177,27 +197,58 @@ export default function ContactQueriesPage() {
         </div>
 
         <div className="mb-4 flex gap-4">
+          {/* All category */}
+          <Badge
+            count={getCountForStatus(undefined)}
+            color="default"
+            className="cursor-pointer"
+            onClick={() => setStatusFilter(undefined)}
+          >
+            <Card
+              size="small"
+              className={
+                statusFilter === undefined ? "border-2 border-blue-500" : ""
+              }
+            >
+              ALL
+            </Card>
+          </Badge>
+
           {Object.entries(QUERY_STATUSES).map(([key, status]) => (
             <Badge
               key={key}
-              count={mockData.filter((item) => item.status === status).length}
+              count={getCountForStatus(status)}
               color={statusColors[status]}
               className="cursor-pointer"
+              onClick={() => setStatusFilter(status)}
             >
-              <Card size="small">{status.replace("_", " ")}</Card>
+              <Card
+                size="small"
+                className={
+                  statusFilter === status ? "border-2 border-blue-500" : ""
+                }
+              >
+                {status.replace("_", " ")}
+              </Card>
             </Badge>
           ))}
         </div>
 
         <Table
           columns={columns}
-          dataSource={mockData}
+          dataSource={data?.items}
           rowKey="id"
+          loading={isLoading}
           pagination={{
-            total: mockData.length,
-            pageSize: 10,
+            current: page,
+            pageSize: pageSize,
+            total: (data?.totalPages ?? 0) * pageSize,
             showSizeChanger: true,
             showQuickJumper: true,
+            onChange: (page, pageSize) => {
+              setPage(page);
+              setPageSize(pageSize);
+            },
           }}
         />
       </Card>

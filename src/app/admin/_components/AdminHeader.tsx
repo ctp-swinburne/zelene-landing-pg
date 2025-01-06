@@ -11,7 +11,7 @@ export default function AdminHeader() {
   return (
     <Header className="flex items-center justify-between bg-white px-6">
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold">IoT Platform</h1>
+        <h1 className="text-xl font-bold">Zelene IoT Platform</h1>
         <Input
           prefix={<SearchOutlined />}
           placeholder="Quick search..."
