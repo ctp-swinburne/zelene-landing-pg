@@ -1,4 +1,3 @@
-// admin/contact/_components/ContactDetailDrawer.tsx
 "use client";
 
 import React from "react";
@@ -12,10 +11,11 @@ import {
   Space,
   Tag,
 } from "antd";
-import type { ContactQuery } from "../page";
-import type { QueryStatus } from "~/schema/queries";
+import type { RouterOutputs } from "~/trpc/react";
 
 const { TextArea } = Input;
+
+type ContactQuery = RouterOutputs["adminQueryView"]["getContacts"]["items"][0];
 
 const QUERY_STATUSES = {
   NEW: "NEW",
@@ -23,12 +23,20 @@ const QUERY_STATUSES = {
   RESOLVED: "RESOLVED",
   CANCELLED: "CANCELLED",
 } as const;
+
 interface ContactDetailDrawerProps {
   query: ContactQuery | null;
   visible: boolean;
   onClose: () => void;
-  onStatusChange: (id: string, status: QueryStatus) => void;
+  onStatusChange: (id: string, status: keyof typeof QUERY_STATUSES) => void;
 }
+
+const statusColors = {
+  NEW: "blue",
+  IN_PROGRESS: "orange",
+  RESOLVED: "green",
+  CANCELLED: "red",
+} as const;
 
 export default function ContactDetailDrawer({
   query,
@@ -41,7 +49,7 @@ export default function ContactDetailDrawer({
   if (!query) return null;
 
   const handleSubmitResponse = () => {
-    // Implement response submission logic
+    // TODO: Implement response mutation
     console.log("Submit response:", response);
     setResponse("");
   };
@@ -84,7 +92,9 @@ export default function ContactDetailDrawer({
             <Tag color="blue">{query.inquiryType}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Status" span={2}>
-            <Tag color="green">{query.status}</Tag>
+            <Tag color={statusColors[query.status]}>
+              {query.status.replace("_", " ")}
+            </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Message" span={2}>
             {query.message}
@@ -96,11 +106,11 @@ export default function ContactDetailDrawer({
           <Timeline
             items={[
               {
-                children: "Query received",
+                children: `Query received on ${query.createdAt.toLocaleDateString()}`,
                 color: "blue",
                 dot: <div className="h-2 w-2 rounded-full bg-blue-500" />,
               },
-              // Add more timeline items as needed
+              // TODO: Add actual communication history from API
             ]}
           />
         </div>

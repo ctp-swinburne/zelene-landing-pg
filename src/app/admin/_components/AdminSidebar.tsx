@@ -33,7 +33,7 @@ const menuItems = [
       { key: "/admin/contact", label: "Contact Queries" },
       { key: "/admin/issues", label: "Technical Issues" },
       { key: "/admin/feedback", label: "User Feedback" },
-      { key: "/admin/help", label: "Help Center" },
+      { key: "/admin/support", label: "Support Center" },
     ],
   },
   {
