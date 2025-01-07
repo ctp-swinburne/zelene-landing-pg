@@ -115,7 +115,7 @@ export default function SignInClient() {
     if (changedFieldNames.length === 0) return;
 
     const formFields: SignInFormFields[] = ['username', 'password'];
-    const currentValues = form.getFieldsValue(formFields);
+    const currentValues = form.getFieldsValue(formFields) as Record<SignInFormFields, unknown>;
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
       const typedKey = key as SignInFormFields;
@@ -128,7 +128,7 @@ export default function SignInClient() {
         form.getFieldValue("captchaToken") && 
         hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues;
+      lastValidValues.current = currentValues as Partial<SignInSchema>;
     }
   };
 
@@ -136,7 +136,7 @@ export default function SignInClient() {
     if (token) {
       form.setFieldValue("captchaToken", token);
       const formFields: SignInFormFields[] = ['username', 'password'];
-      lastValidValues.current = form.getFieldsValue(formFields);
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<SignInSchema>;
     }
   };
 
@@ -147,7 +147,7 @@ export default function SignInClient() {
       if (!showCaptcha) {
         setShowCaptcha(true);
         const formFields: SignInFormFields[] = ['username', 'password'];
-        lastValidValues.current = form.getFieldsValue(formFields);
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<SignInSchema>;
         isSubmitting.current = false;
         return;
       }

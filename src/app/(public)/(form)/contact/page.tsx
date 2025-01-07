@@ -97,9 +97,10 @@ export default function ContactPage() {
       'inquiryType', 
       'message'
     ];
-    const currentValues = form.getFieldsValue(formFields);
+    
+    const currentValues = form.getFieldsValue(formFields) as Record<ContactFormFields, unknown>;
 
-    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+    const hasRealChanges = Object.entries(currentValues as Record<string, unknown>).some(([key, value]) => {
       const typedKey = key as ContactFormFields;
       return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
@@ -110,7 +111,7 @@ export default function ContactPage() {
         form.getFieldValue("captchaToken") && 
         hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues;
+      lastValidValues.current = currentValues as Partial<ContactFormValues>;
     }
   };
 
@@ -125,7 +126,7 @@ export default function ContactPage() {
         'inquiryType', 
         'message'
       ];
-      lastValidValues.current = form.getFieldsValue(formFields);
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
     }
   };
 
@@ -143,7 +144,7 @@ export default function ContactPage() {
           'inquiryType', 
           'message'
         ];
-        lastValidValues.current = form.getFieldsValue(formFields);
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
         isSubmitting.current = false;
         return;
       }

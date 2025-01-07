@@ -14,7 +14,7 @@ import {
   Collapse,
   message,
 } from "antd";
-import type { FormProps } from 'antd';
+import type { FormProps, FormInstance } from 'antd';
 import {
   QuestionCircleOutlined,
   SearchOutlined,
@@ -48,12 +48,12 @@ type SupportFormProps = FormProps<SupportRequestFormValues>;
 
 export default function HelpCenterPage() {
   const [form] = Form.useForm<SupportRequestFormValues>();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [messageApi, contextHolder] = message.useMessage();
-  const [showCaptcha, setShowCaptcha] = useState(false);
-  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState<boolean>(false);
   const lastValidValues = useRef<Partial<SupportRequestFormValues>>({});
-  const isSubmitting = useRef(false);
+  const isSubmitting = useRef<boolean>(false);
 
   const mutation = api.queries.submitSupportRequest.useMutation({
     onSuccess: () => {
@@ -64,7 +64,7 @@ export default function HelpCenterPage() {
       lastValidValues.current = {};
       isSubmitting.current = false;
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       messageApi.error("Failed to submit support request. Please try again.");
       console.error("Form submission error:", error);
       resetCaptcha();
@@ -90,7 +90,7 @@ export default function HelpCenterPage() {
     if (changedFieldNames.length === 0) return;
 
     const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
-    const currentValues = form.getFieldsValue(formFields);
+    const currentValues = form.getFieldsValue(formFields) as Record<SupportFormFields, unknown>;
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
       const typedKey = key as SupportFormFields;
@@ -103,7 +103,7 @@ export default function HelpCenterPage() {
         form.getFieldValue("captchaToken") && 
         hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues;
+      lastValidValues.current = currentValues as Partial<SupportRequestFormValues>;
     }
   };
 
@@ -111,7 +111,7 @@ export default function HelpCenterPage() {
     if (token) {
       form.setFieldValue("captchaToken", token);
       const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
-      lastValidValues.current = form.getFieldsValue(formFields);
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
     }
   };
 
@@ -122,7 +122,7 @@ export default function HelpCenterPage() {
       if (!showCaptcha) {
         setShowCaptcha(true);
         const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
-        lastValidValues.current = form.getFieldsValue(formFields);
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
         isSubmitting.current = false;
         return;
       }

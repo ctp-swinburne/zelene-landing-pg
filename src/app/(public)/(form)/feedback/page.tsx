@@ -99,9 +99,9 @@ export default function FeedbackPage() {
       'comments'
     ];
 
-    const currentValues = form.getFieldsValue(formFields);
+    const currentValues = form.getFieldsValue(formFields) as Record<FeedbackFormFields, unknown>;
 
-    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+    const hasRealChanges = Object.entries(currentValues as Record<string, unknown>).some(([key, value]) => {
       const typedKey = key as FeedbackFormFields;
       return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
@@ -112,7 +112,7 @@ export default function FeedbackPage() {
         form.getFieldValue("captchaToken") && 
         hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues;
+      lastValidValues.current = currentValues as Partial<FeedbackFormValues>;
     }
   };
 
@@ -128,7 +128,7 @@ export default function FeedbackPage() {
         'recommendation', 
         'comments'
       ];
-      lastValidValues.current = form.getFieldsValue(formFields);
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
     }
   };
 
@@ -147,7 +147,7 @@ export default function FeedbackPage() {
           'recommendation', 
           'comments'
         ];
-        lastValidValues.current = form.getFieldsValue(formFields);
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
         isSubmitting.current = false;
         return;
       }
