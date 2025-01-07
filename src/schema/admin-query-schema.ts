@@ -31,6 +31,7 @@ export const ContactQuerySchema = z.object({
   inquiryType: z.enum(["PARTNERSHIP", "SALES", "MEDIA", "GENERAL"]),
   message: z.string(),
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]),
+  response: z.string().nullable(),
 });
 
 export const FeedbackSchema = z.object({
@@ -48,6 +49,7 @@ export const FeedbackSchema = z.object({
   improvements: z.string(),
   recommendation: z.boolean(),
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]),
+  response: z.string().nullable(),
   createdAt: z.date(),
 });
 
@@ -60,6 +62,7 @@ export const SupportRequestSchema = z.object({
   description: z.string(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH"]),
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]),
+  response: z.string().nullable(),
 });
 
 export const TechnicalIssueSchema = z.object({
@@ -81,6 +84,7 @@ export const TechnicalIssueSchema = z.object({
   expectedBehavior: z.string(),
   attachments: z.array(z.string()),
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]),
+  response: z.string().nullable(),
 });
 
 export const QueryCountsSchema = z.object({

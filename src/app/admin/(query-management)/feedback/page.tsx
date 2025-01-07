@@ -1,4 +1,3 @@
-//admin/feedback/page.tsx
 "use client";
 
 import React from "react";
@@ -39,6 +38,7 @@ export default function FeedbackPage() {
       title: "Category",
       dataIndex: "category",
       key: "category",
+      width: 120,
       render: (category: FeedbackItem["category"]) => (
         <Tag color={categoryColors[category]}>{category}</Tag>
       ),
@@ -89,6 +89,8 @@ export default function FeedbackPage() {
       title: "Features",
       dataIndex: "features",
       key: "features",
+      width: 200,
+      ellipsis: true,
       render: (features: string[]) => (
         <Space size={[0, 4]} wrap>
           {features.map((feature, index) => (
@@ -139,6 +141,7 @@ export default function FeedbackPage() {
       title: "Created At",
       dataIndex: "createdAt",
       key: "createdAt",
+      width: 160,
       render: (date: Date) => new Date(date).toLocaleString(),
       sorter: (a, b) =>
         new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -147,6 +150,7 @@ export default function FeedbackPage() {
       title: "Action",
       key: "action",
       width: 100,
+      fixed: "right",
       render: (_, record: FeedbackItem) => (
         <Button type="link" onClick={() => handleView(record)}>
           View
@@ -178,23 +182,26 @@ export default function FeedbackPage() {
           </Space>
         </div>
 
-        <Table
-          columns={columns}
-          dataSource={data?.items}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: data?.totalPages ? data.totalPages * pageSize : 0,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            onChange: (page, size) => {
-              setCurrentPage(page);
-              setPageSize(size);
-            },
-          }}
-        />
+        <div className="overflow-x-auto">
+          <Table
+            columns={columns}
+            dataSource={data?.items}
+            rowKey="id"
+            loading={isLoading}
+            scroll={{ x: 1200 }}
+            pagination={{
+              current: currentPage,
+              pageSize: pageSize,
+              total: data?.totalPages ? data.totalPages * pageSize : 0,
+              showSizeChanger: true,
+              showQuickJumper: true,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
+            }}
+          />
+        </div>
       </Card>
 
       <FeedbackDetailDrawer

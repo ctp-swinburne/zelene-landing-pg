@@ -1,7 +1,17 @@
 "use client";
 
 import React from "react";
-import { Table, Tag, Card, Select, Button, Space, Badge, Input } from "antd";
+import {
+  Table,
+  Tag,
+  Card,
+  Select,
+  Button,
+  Space,
+  Badge,
+  Input,
+  message,
+} from "antd";
 import ContactDetailDrawer from "./_components/ContactDetailDrawer";
 import type { TableProps } from "antd";
 import { SearchOutlined, FilterOutlined } from "@ant-design/icons";
@@ -45,6 +55,10 @@ export default function ContactQueriesPage() {
   const [statusFilter, setStatusFilter] = useState<
     (typeof QUERY_STATUSES)[keyof typeof QUERY_STATUSES] | undefined
   >();
+  const [selectedQuery, setSelectedQuery] = useState<ContactQuery | null>(null);
+  const [drawerVisible, setDrawerVisible] = useState(false);
+
+  const utils = api.useContext();
 
   // Fetch contacts using tRPC
   const { data, isLoading } = api.adminQueryView.getContacts.useQuery({
@@ -53,13 +67,31 @@ export default function ContactQueriesPage() {
     status: statusFilter,
   });
 
+  // Status update mutation
+  const updateMutation = api.adminQueryMutations.updateContactQuery.useMutation(
+    {
+      onSuccess: async () => {
+        message.success("Status updated successfully");
+        await Promise.all([
+          utils.adminQueryView.getContacts.invalidate(),
+          utils.adminQueryView.getQueryCounts.invalidate(),
+        ]);
+      },
+      onError: (error) => {
+        message.error(`Failed to update status: ${error.message}`);
+      },
+    },
+  );
+
   // Fetch query counts for each status
   const { data: allCounts } = api.adminQueryView.getQueryCounts.useQuery({});
   const { data: newCounts } = api.adminQueryView.getQueryCounts.useQuery({
     status: "NEW",
   });
   const { data: inProgressCounts } = api.adminQueryView.getQueryCounts.useQuery(
-    { status: "IN_PROGRESS" },
+    {
+      status: "IN_PROGRESS",
+    },
   );
   const { data: resolvedCounts } = api.adminQueryView.getQueryCounts.useQuery({
     status: "RESOLVED",
@@ -70,7 +102,7 @@ export default function ContactQueriesPage() {
 
   const getCountForStatus = (
     status: keyof typeof QUERY_STATUSES | undefined,
-  ) => {
+  ): number => {
     switch (status) {
       case "NEW":
         return newCounts?.contacts ?? 0;
@@ -83,6 +115,20 @@ export default function ContactQueriesPage() {
       default:
         return allCounts?.contacts ?? 0;
     }
+  };
+
+  const handleStatusChange = (
+    id: string,
+    status: keyof typeof QUERY_STATUSES,
+  ) => {
+    const query = data?.items.find((q) => q.id === id);
+    if (!query) return;
+
+    void updateMutation.mutate({
+      id,
+      status,
+      response: query.response,
+    });
   };
 
   const columns: TableProps<ContactQuery>["columns"] = [
@@ -151,33 +197,29 @@ export default function ContactQueriesPage() {
             View
           </Button>
           <Select
-            defaultValue={record.status}
+            value={record.status}
             style={{ width: 120 }}
-            onChange={(value) => handleStatusChange(record.id, value)}
+            onChange={(value: keyof typeof QUERY_STATUSES) =>
+              handleStatusChange(record.id, value)
+            }
             options={Object.values(QUERY_STATUSES).map((status) => ({
               label: status.replace("_", " "),
               value: status,
             }))}
+            loading={
+              updateMutation.isPending &&
+              updateMutation.variables?.id === record.id
+            }
+            disabled={updateMutation.isPending}
           />
         </Space>
       ),
     },
   ];
 
-  const [selectedQuery, setSelectedQuery] = useState<ContactQuery | null>(null);
-  const [drawerVisible, setDrawerVisible] = useState(false);
-
   const handleView = (record: ContactQuery) => {
     setSelectedQuery(record);
     setDrawerVisible(true);
-  };
-
-  const handleStatusChange = (
-    id: string,
-    status: keyof typeof QUERY_STATUSES,
-  ) => {
-    // TODO: Implement status update mutation
-    console.log("Update status:", id, status);
   };
 
   return (

@@ -17,6 +17,8 @@ import {
   severityProgress,
   issueTypeColors,
 } from "./_components/technical-issues.types";
+import type { QueryResponseSchema } from "~/schema/admin-query-mutations";
+import type { z } from "zod";
 
 export default function TechnicalIssuesPage() {
   const [selectedSeverity, setSelectedSeverity] = React.useState<
@@ -34,6 +36,17 @@ export default function TechnicalIssuesPage() {
 
   const issues = data?.items ?? [];
   const totalPages = data?.totalPages ?? 0;
+
+  const handleStatusUpdate = (
+    id: string,
+    newStatus: z.infer<typeof QueryResponseSchema>["status"],
+  ) => {
+    // Update local state if needed
+    const updatedIssues = issues.map((issue) =>
+      issue.id === id ? { ...issue, status: newStatus } : issue,
+    );
+    // The actual update will happen through the invalidation in the drawer component
+  };
 
   const columns: TableProps<TechnicalIssue>["columns"] = [
     {
@@ -133,7 +146,13 @@ export default function TechnicalIssuesPage() {
           showIcon
           icon={<ExclamationCircleOutlined />}
           action={
-            <Button size="small" danger>
+            <Button
+              size="small"
+              danger
+              onClick={() => {
+                setSelectedSeverity("CRITICAL");
+              }}
+            >
               View Critical Issues
             </Button>
           }
@@ -206,7 +225,11 @@ export default function TechnicalIssuesPage() {
       <TechnicalIssueDrawer
         issue={selectedIssue}
         visible={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
+        onClose={() => {
+          setDrawerVisible(false);
+          setSelectedIssue(null);
+        }}
+        onStatusUpdate={handleStatusUpdate}
       />
     </div>
   );
