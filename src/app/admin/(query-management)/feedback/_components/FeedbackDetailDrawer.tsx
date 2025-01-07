@@ -1,61 +1,32 @@
-//admin/feedback/_components/FeedbackDetailDrawer.tsx
+// admin/feedback/_components/FeedbackDetailDrawer.tsx
 "use client";
 
 import React from "react";
-import { Drawer, Descriptions, Button, Select, Space, Tag, Rate } from "antd";
+import { Drawer, Space, Tag, Rate, Divider } from "antd";
+import type { RouterOutputs } from "~/trpc/react";
+import ResponseForm from "./ResponseForm";
 
-const QueryStatus = {
-  NEW: "NEW",
-  IN_PROGRESS: "IN_PROGRESS",
-  RESOLVED: "RESOLVED",
-  CANCELLED: "CANCELLED",
-} as const;
-
-const FeedbackCategory = {
-  UI: "UI",
-  FEATURES: "FEATURES",
-  PERFORMANCE: "PERFORMANCE",
-  DOCUMENTATION: "DOCUMENTATION",
-  GENERAL: "GENERAL",
-} as const;
-
-type QueryStatus = (typeof QueryStatus)[keyof typeof QueryStatus];
-type FeedbackCategory =
-  (typeof FeedbackCategory)[keyof typeof FeedbackCategory];
-
-interface Feedback {
-  id: string;
-  category: FeedbackCategory;
-  satisfaction: number;
-  usability: number;
-  features: string[];
-  improvements: string;
-  recommendation: boolean;
-  comments?: string;
-  status: QueryStatus;
-  createdAt: string;
-}
+type FeedbackData = RouterOutputs["adminQueryView"]["getFeedback"];
+type FeedbackItem = FeedbackData["items"][0];
 
 interface FeedbackDetailDrawerProps {
-  feedback: Feedback | null;
+  feedback: FeedbackItem | null;
   visible: boolean;
   onClose: () => void;
-  onStatusChange: (id: string, status: QueryStatus) => void;
 }
 
-const categoryColors = {
+const categoryColors: Record<FeedbackItem["category"], string> = {
   UI: "magenta",
   FEATURES: "blue",
   PERFORMANCE: "orange",
   DOCUMENTATION: "cyan",
   GENERAL: "purple",
-} as const;
+};
 
 export default function FeedbackDetailDrawer({
   feedback,
   visible,
   onClose,
-  onStatusChange,
 }: FeedbackDetailDrawerProps) {
   if (!feedback) return null;
 
@@ -68,17 +39,6 @@ export default function FeedbackDetailDrawer({
             <Tag color={categoryColors[feedback.category]}>
               {feedback.category}
             </Tag>
-            <Select
-              value={feedback.status}
-              style={{ width: 130 }}
-              onChange={(value) =>
-                onStatusChange(feedback.id, value as QueryStatus)
-              }
-              options={Object.values(QueryStatus).map((status) => ({
-                label: status.replace("_", " "),
-                value: status,
-              }))}
-            />
           </Space>
         </div>
       }
@@ -95,14 +55,14 @@ export default function FeedbackDetailDrawer({
               <div className="mb-1 text-sm text-gray-500">
                 Overall Satisfaction
               </div>
-              <Rate disabled defaultValue={feedback.satisfaction} />
+              <Rate disabled value={feedback.satisfaction} />
               <span className="ml-2 text-gray-500">
                 {feedback.satisfaction}/5
               </span>
             </div>
             <div>
               <div className="mb-1 text-sm text-gray-500">Usability Rating</div>
-              <Rate disabled defaultValue={feedback.usability} />
+              <Rate disabled value={feedback.usability} />
               <span className="ml-2 text-gray-500">{feedback.usability}/5</span>
             </div>
             <div>
@@ -138,14 +98,12 @@ export default function FeedbackDetailDrawer({
           </div>
         </section>
 
-        {feedback.comments && (
-          <section>
-            <h3 className="mb-4 text-lg font-medium">Additional Comments</h3>
-            <div className="whitespace-pre-wrap rounded-lg border p-4">
-              {feedback.comments}
-            </div>
-          </section>
-        )}
+        <section>
+          <h3 className="mb-4 text-lg font-medium">Response Management</h3>
+          <div className="rounded-lg border p-4">
+            <ResponseForm feedback={feedback} onSuccess={onClose} />
+          </div>
+        </section>
 
         <section>
           <h3 className="mb-4 text-lg font-medium">Metadata</h3>
@@ -159,7 +117,13 @@ export default function FeedbackDetailDrawer({
                 <div className="text-sm text-gray-500">Status</div>
                 <Tag
                   color={
-                    feedback.status === "RESOLVED" ? "success" : "processing"
+                    feedback.status === "RESOLVED"
+                      ? "success"
+                      : feedback.status === "IN_PROGRESS"
+                        ? "processing"
+                        : feedback.status === "CANCELLED"
+                          ? "error"
+                          : "blue"
                   }
                 >
                   {feedback.status.replace("_", " ")}

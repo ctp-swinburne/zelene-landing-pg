@@ -3,37 +3,18 @@
 
 import { type NextPage } from "next";
 import { Card, Row, Col, Alert, Space } from "antd";
-import Link from "next/link";
 import DashboardStats from "./_components/DashboardStats";
 import { api } from "~/trpc/react";
+import { type RouterOutputs } from "~/trpc/react";
+import SupportItem from "./_components/SupportItem";
 
-const SupportItem = ({
-  title,
-  desc,
-  path,
-  badge,
-}: {
-  title: string;
-  desc: string;
-  path: string;
-  badge?: string;
-}) => (
-  <Link href={path}>
-    <Card
-      title={title}
-      extra={badge && <span className="text-blue-600">{badge}</span>}
-      hoverable
-    >
-      <p className="text-gray-500">{desc}</p>
-    </Card>
-  </Link>
-);
+type QueryCounts = RouterOutputs["adminQueryView"]["getQueryCounts"];
 
 const AdminPage: NextPage = () => {
   const { data: newItemsCounts } = api.adminQueryView.getQueryCounts.useQuery({
     status: "NEW",
   });
-  console.log(newItemsCounts);
+
   const notifications = [
     {
       type: "error" as const,
@@ -46,51 +27,39 @@ const AdminPage: NextPage = () => {
     },
   ];
 
-  const sections = [
+  const supportItems = [
     {
-      title: "Support & Inquiries",
-      items: [
-        {
-          title: "Contact Queries",
-          desc: "Partnership, Sales, Media & General",
-          path: "/admin/contact",
-          badge: newItemsCounts?.contacts
-            ? `${newItemsCounts.contacts} unread`
-            : "0 unread",
-        },
-        {
-          title: "Technical Issues",
-          desc: "Device, Platform & Security reports",
-          path: "/admin/issues",
-          badge: newItemsCounts?.technicalIssues
-            ? `${newItemsCounts.technicalIssues} unread`
-            : "0 unread",
-        },
-        {
-          title: "User Feedback",
-          desc: "Platform & feature feedback",
-          path: "/admin/feedback",
-          badge: newItemsCounts?.feedback
-            ? `${newItemsCounts.feedback} unread`
-            : "0 unread",
-        },
-        {
-          title: "Help Center",
-          desc: "Support documentation & guides",
-          path: "/admin/help",
-          badge: newItemsCounts?.supportRequests
-            ? `${newItemsCounts.supportRequests} unread`
-            : "0 unread",
-        },
-      ],
+      title: "Contact Queries",
+      desc: "Partnership, Sales, Media & General",
+      path: "/admin/contact",
+      badge: `${newItemsCounts?.contacts ?? 0} unread`,
+    },
+    {
+      title: "Technical Issues",
+      desc: "Device, Platform & Security reports",
+      path: "/admin/issues",
+      badge: `${newItemsCounts?.technicalIssues ?? 0} unread`,
+    },
+    {
+      title: "User Feedback",
+      desc: "Platform & feature feedback",
+      path: "/admin/feedback",
+      badge: `${newItemsCounts?.feedback ?? 0} unread`,
+    },
+    {
+      title: "Help Center",
+      desc: "Support documentation & guides",
+      path: "/admin/help",
+      badge: `${newItemsCounts?.supportRequests ?? 0} unread`,
     },
   ];
 
   return (
-    <>
+    <div className="space-y-8">
       <DashboardStats />
 
-      <Row gutter={[16, 16]} className="mt-6">
+      {/* Notifications */}
+      <Row gutter={[16, 16]}>
         <Col span={16}>
           <Space direction="vertical" className="w-full">
             {notifications.map((notif, idx) => (
@@ -105,19 +74,18 @@ const AdminPage: NextPage = () => {
         </Col>
       </Row>
 
-      {sections.map((section, idx) => (
-        <div key={idx} className="mt-8">
-          <h2 className="mb-4 text-xl font-semibold">{section.title}</h2>
-          <Row gutter={[16, 16]}>
-            {section.items.map((item, itemIdx) => (
-              <Col span={6} key={itemIdx}>
-                <SupportItem {...item} />
-              </Col>
-            ))}
-          </Row>
-        </div>
-      ))}
-    </>
+      {/* Support Items */}
+      <div>
+        <h2 className="mb-4 text-xl font-semibold">Support & Inquiries</h2>
+        <Row gutter={[16, 16]}>
+          {supportItems.map((item, idx) => (
+            <Col xs={24} sm={12} md={6} key={idx}>
+              <SupportItem {...item} />
+            </Col>
+          ))}
+        </Row>
+      </div>
+    </div>
   );
 };
 

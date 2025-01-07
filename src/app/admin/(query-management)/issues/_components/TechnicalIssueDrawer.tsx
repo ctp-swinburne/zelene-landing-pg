@@ -1,4 +1,3 @@
-// admin/issues/_components/TechnicalIssueDrawer.tsx
 "use client";
 
 import React from "react";
@@ -12,48 +11,16 @@ import {
   Space,
   Tag,
   Divider,
-  Upload,
-  Progress,
-  Alert,
+  message,
 } from "antd";
-import {
-  PaperClipOutlined,
-  UploadOutlined,
-  CheckCircleOutlined,
-  ExclamationCircleOutlined,
-} from "@ant-design/icons";
-
-const QueryStatus = {
-  NEW: "NEW",
-  IN_PROGRESS: "IN_PROGRESS",
-  RESOLVED: "RESOLVED",
-  CANCELLED: "CANCELLED",
-} as const;
-
-const IssueSeverity = {
-  LOW: "LOW",
-  MEDIUM: "MEDIUM",
-  HIGH: "HIGH",
-  CRITICAL: "CRITICAL",
-} as const;
-
-type QueryStatus = (typeof QueryStatus)[keyof typeof QueryStatus];
-type IssueSeverity = (typeof IssueSeverity)[keyof typeof IssueSeverity];
-
-interface TechnicalIssue {
-  id: string;
-  deviceId?: string;
-  issueType: string;
-  severity: IssueSeverity;
-  title: string;
-  description: string;
-  stepsToReproduce: string;
-  expectedBehavior: string;
-  attachments?: string[];
-  status: QueryStatus;
-  createdAt: string;
-  assignedTo?: string;
-}
+import { ExclamationCircleOutlined } from "@ant-design/icons";
+import type { TechnicalIssue } from "./technical-issues.types";
+import { severityColors } from "./technical-issues.types";
+import { AttachmentList } from "./AttatchmentList";
+import { Alert } from "antd";
+import { api } from "~/trpc/react";
+import type { QueryResponseSchema } from "~/schema/admin-query-mutations";
+import type { z } from "zod";
 
 const { TextArea } = Input;
 
@@ -61,36 +28,103 @@ interface TechnicalIssueDrawerProps {
   issue: TechnicalIssue | null;
   visible: boolean;
   onClose: () => void;
-  onStatusChange: (id: string, status: QueryStatus) => void;
+  onStatusUpdate?: (
+    id: string,
+    status: z.infer<typeof QueryResponseSchema>["status"],
+  ) => void;
 }
-
-const severityColor = {
-  LOW: "blue",
-  MEDIUM: "orange",
-  HIGH: "red",
-  CRITICAL: "purple",
-} as const;
 
 export default function TechnicalIssueDrawer({
   issue,
   visible,
   onClose,
-  onStatusChange,
+  onStatusUpdate,
 }: TechnicalIssueDrawerProps) {
   const [response, setResponse] = React.useState("");
-  const [assignedTo, setAssignedTo] = React.useState(issue?.assignedTo ?? "");
+  const [status, setStatus] =
+    React.useState<z.infer<typeof QueryResponseSchema>["status"]>("NEW");
+  const utils = api.useContext();
+
+  const updateIssueMutation =
+    api.adminQueryMutations.updateTechnicalIssue.useMutation({
+      onSuccess: () => {
+        message.success("Issue updated successfully");
+        utils.adminQueryView.getTechnicalIssues.invalidate().catch((error) => {
+          console.error("Failed to invalidate query:", error);
+          message.error("Failed to refresh data");
+        });
+        if (issue && onStatusUpdate) {
+          onStatusUpdate(issue.id, status);
+        }
+        onClose();
+      },
+      onError: (error) => {
+        message.error(error.message || "Failed to update issue");
+      },
+    });
+
+  React.useEffect(() => {
+    if (issue) {
+      setStatus(issue.status);
+      setResponse(issue.response ?? "");
+    }
+  }, [issue]);
 
   if (!issue) return null;
 
-  const handleSubmitResponse = () => {
-    // Implement response submission logic
-    console.log("Submit response:", response);
-    setResponse("");
+  const handleSubmit = () => {
+    if (!issue) return;
+
+    updateIssueMutation.mutate({
+      id: issue.id,
+      status,
+      response,
+    });
   };
 
-  const handleAssign = () => {
-    // Implement assignment logic
-    console.log("Assign to:", assignedTo);
+  const getTimelineItems = () => {
+    const items = [
+      {
+        color: "blue",
+        children: (
+          <>
+            <p className="font-medium">Issue Reported</p>
+            <p className="text-sm text-gray-500">
+              Initial report received with {issue.severity.toLowerCase()}{" "}
+              severity
+            </p>
+          </>
+        ),
+      },
+    ];
+
+    if (issue.status !== "NEW") {
+      items.push({
+        color: "green",
+        children: (
+          <>
+            <p className="font-medium">Status Updated</p>
+            <p className="text-sm text-gray-500">
+              Current status: {issue.status.replace("_", " ").toLowerCase()}
+            </p>
+          </>
+        ),
+      });
+    }
+
+    if (issue.response) {
+      items.push({
+        color: "blue",
+        children: (
+          <>
+            <p className="font-medium">Response Added</p>
+            <p className="text-sm text-gray-500">{issue.response}</p>
+          </>
+        ),
+      });
+    }
+
+    return items;
   };
 
   return (
@@ -98,7 +132,7 @@ export default function TechnicalIssueDrawer({
       title={
         <div className="flex items-center justify-between">
           <span>Technical Issue Details</span>
-          <Tag color={severityColor[issue.severity]} className="ml-2">
+          <Tag color={severityColors[issue.severity]} className="ml-2">
             {issue.severity}
           </Tag>
         </div>
@@ -109,17 +143,13 @@ export default function TechnicalIssueDrawer({
       open={visible}
       extra={
         <Space>
-          <Select
-            value={issue.status}
-            style={{ width: 120 }}
-            onChange={(value) => onStatusChange(issue.id, value as QueryStatus)}
-            options={Object.values(QueryStatus).map((status) => ({
-              label: status.replace("_", " "),
-              value: status,
-            }))}
-          />
-          <Button type="primary" onClick={handleSubmitResponse}>
-            Update Issue
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            type="primary"
+            onClick={handleSubmit}
+            loading={updateIssueMutation.isPending}
+          >
+            Save Changes
           </Button>
         </Space>
       }
@@ -143,7 +173,16 @@ export default function TechnicalIssueDrawer({
             <Tag color="blue">{issue.issueType}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Status" span={1}>
-            <Tag color="green">{issue.status}</Tag>
+            <Select
+              value={status}
+              onChange={(value) => setStatus(value)}
+              style={{ width: "100%" }}
+            >
+              <Select.Option value="NEW">New</Select.Option>
+              <Select.Option value="IN_PROGRESS">In Progress</Select.Option>
+              <Select.Option value="RESOLVED">Resolved</Select.Option>
+              <Select.Option value="CANCELLED">Cancelled</Select.Option>
+            </Select>
           </Descriptions.Item>
           <Descriptions.Item label="Title" span={2}>
             {issue.title}
@@ -170,91 +209,21 @@ export default function TechnicalIssueDrawer({
         {issue.attachments && issue.attachments.length > 0 && (
           <div>
             <h3 className="mb-2 text-lg font-medium">Attachments</h3>
-            <div className="space-y-2">
-              {issue.attachments.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between rounded-md border p-2"
-                >
-                  <div className="flex items-center">
-                    <PaperClipOutlined className="mr-2" />
-                    <span>{file}</span>
-                  </div>
-                  <Button size="small" type="link">
-                    Download
-                  </Button>
-                </div>
-              ))}
-            </div>
+            <AttachmentList attachments={issue.attachments} />
           </div>
         )}
 
         <Divider />
 
         <div>
-          <h3 className="mb-4 text-lg font-medium">Assignment</h3>
-          <div className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Input
-                placeholder="Assign to (email)"
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                style={{ flex: 1 }}
-              />
-              <Button onClick={handleAssign} type="primary">
-                Assign
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        <div>
           <h3 className="mb-4 text-lg font-medium">Activity Timeline</h3>
-          <Timeline
-            items={[
-              {
-                color: "red",
-                children: (
-                  <>
-                    <p className="font-medium">Issue Reported</p>
-                    <p className="text-sm text-gray-500">
-                      Initial report received with{" "}
-                      {issue.severity.toLowerCase()} severity
-                    </p>
-                  </>
-                ),
-              },
-              {
-                color: "blue",
-                children: (
-                  <>
-                    <p className="font-medium">Investigation Started</p>
-                    <p className="text-sm text-gray-500">
-                      Technical team began investigation
-                    </p>
-                  </>
-                ),
-              },
-              {
-                color: "green",
-                children: (
-                  <>
-                    <p className="font-medium">Status Updated</p>
-                    <p className="text-sm text-gray-500">
-                      Current status:{" "}
-                      {issue.status.replace("_", " ").toLowerCase()}
-                    </p>
-                  </>
-                ),
-              },
-            ]}
-          />
+          <Timeline items={getTimelineItems()} />
         </div>
 
         <Divider />
 
         <div>
-          <h3 className="mb-2 text-lg font-medium">Add Response</h3>
+          <h3 className="mb-2 text-lg font-medium">Response</h3>
           <div className="space-y-4">
             <TextArea
               rows={4}
@@ -262,14 +231,6 @@ export default function TechnicalIssueDrawer({
               onChange={(e) => setResponse(e.target.value)}
               placeholder="Add your response or update..."
             />
-            <Upload>
-              <Button icon={<UploadOutlined />}>Attach Files</Button>
-            </Upload>
-            <div className="text-right">
-              <Button type="primary" onClick={handleSubmitResponse}>
-                Submit Response
-              </Button>
-            </div>
           </div>
         </div>
       </div>
