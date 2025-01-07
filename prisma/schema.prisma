@@ -148,6 +148,7 @@ model ContactQuery {
     inquiryType  InquiryType
     message      String      @db.Text
     status       QueryStatus @default(NEW)
+    response     String?
 }
 
 // Feedback form model
@@ -163,6 +164,7 @@ model Feedback {
     recommendation Boolean
     comments       String?          @db.Text
     status         QueryStatus      @default(NEW)
+    response       String?
 }
 
 // Support request model
@@ -175,6 +177,7 @@ model SupportRequest {
     description String          @db.Text
     priority    SupportPriority
     status      QueryStatus     @default(NEW)
+    response    String?
 }
 
 // Technical issue model
@@ -191,4 +194,5 @@ model TechnicalIssue {
     expectedBehavior String        @db.Text
     attachments      String[] // URLs to stored attachments
     status           QueryStatus   @default(NEW)
+    response         String?
 }

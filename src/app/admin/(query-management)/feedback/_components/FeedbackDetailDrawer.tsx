@@ -1,10 +1,10 @@
-//admin/feedback/_components/FeedbackDetailDrawer.tsx
+// admin/feedback/_components/FeedbackDetailDrawer.tsx
 "use client";
 
 import React from "react";
-import { Drawer, Space, Tag, Rate } from "antd";
+import { Drawer, Space, Tag, Rate, Divider } from "antd";
 import type { RouterOutputs } from "~/trpc/react";
-import { FeedbackSchema } from "~/schema/admin-query-schema";
+import ResponseForm from "./ResponseForm";
 
 type FeedbackData = RouterOutputs["adminQueryView"]["getFeedback"];
 type FeedbackItem = FeedbackData["items"][0];
@@ -95,6 +95,13 @@ export default function FeedbackDetailDrawer({
                 {feedback.improvements}
               </div>
             </div>
+          </div>
+        </section>
+
+        <section>
+          <h3 className="mb-4 text-lg font-medium">Response Management</h3>
+          <div className="rounded-lg border p-4">
+            <ResponseForm feedback={feedback} onSuccess={onClose} />
           </div>
         </section>
 
