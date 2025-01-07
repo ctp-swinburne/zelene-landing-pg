@@ -45,6 +45,7 @@ const footerSections: FooterSection[] = [
       { label: "Contact Support", href: "/contact" },
       { label: "Report Issue", href: "/issues" },
       { label: "Feedback", href: "/feedback" },
+      { label: "Query Lookup", href: "/queries-lookup" },
     ],
   },
 ];

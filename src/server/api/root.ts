@@ -4,6 +4,7 @@ import { adminRouter } from "./routers/user/admin";
 import { queryRouter } from "./routers/queries/query";
 import { adminQueryRouter } from "./routers/queries/admin-query-retriever";
 import { adminQueryMutationsRouter } from "./routers/queries/admin-query-mutations";
+import { queryLookupRouter } from "./routers/queries/query-lookup";
 
 /**
  * This is the primary router for your server.
@@ -16,6 +17,7 @@ export const appRouter = createTRPCRouter({
   queries: queryRouter,
   adminQueryView: adminQueryRouter,
   adminQueryMutations: adminQueryMutationsRouter,
+  queryLookup: queryLookupRouter,
 });
 
 // export type definition of API
