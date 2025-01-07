@@ -65,7 +65,7 @@ export default function RegisterPage() {
     if (changedFieldNames.length === 0) return;
 
     // Get current form values
-    const currentValues = form.getFieldsValue() as FormValues;
+    const currentValues = form.getFieldsValue(['username', 'email', 'password', 'name', 'captchaToken']) as Record<keyof RegisterInput, unknown>;
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
       return value !== lastValidValues.current[key as keyof RegisterInput] &&
