@@ -73,6 +73,11 @@ model User {
     role          UserRole  @default(MEMBER)
     username      String?   @unique
     password      String?
+    // Joined - developed
+    joined        DateTime  @default(now())
+    // Additional Information for Profile page
+    profile       Profile? // Relation to profile
+    social        Social? // Relation to social
 }
 
 model VerificationToken {
@@ -195,4 +200,30 @@ model TechnicalIssue {
     attachments      String[] // URLs to stored attachments
     status           QueryStatus   @default(NEW)
     response         String?
+}
+
+model Profile {
+    id              String   @id @default(cuid())
+    userId          String   @unique
+    user            User     @relation(fields: [userId], references: [id])
+    bio             String?
+    location        String?
+    currentLearning String?
+    availableFor    String?
+    skills          String?
+    currentProject  String?
+    pronouns        Boolean?
+    work            String?
+    education       String?
+}
+
+model Social {
+    id       String  @id @default(cuid())
+    userId   String  @unique
+    user     User    @relation(fields: [userId], references: [id])
+    website  String?
+    twitter  String?
+    github   String?
+    linkedin String?
+    facebook String?
 }
