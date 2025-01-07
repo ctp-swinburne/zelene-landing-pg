@@ -14,7 +14,7 @@ import {
   Alert,
   message,
 } from "antd";
-import type { FormProps } from 'antd';
+import type { NamePath } from 'antd/es/form/interface';
 import {
   MailOutlined,
   PhoneOutlined,
@@ -28,7 +28,12 @@ import type { ContactQuery } from "~/schema/queries";
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
+import ReCAPTCHA from "react-google-recaptcha";
+
+const ReCAPTCHAComponent = dynamic(() => import("react-google-recaptcha"), {
+  ssr: false,
+}) as typeof ReCAPTCHA;
+
 
 type InquiryType = "PARTNERSHIP" | "SALES" | "MEDIA" | "GENERAL";
 type QueryStatus = "NEW" | "IN_PROGRESS" | "RESOLVED" | "CANCELLED";
@@ -44,8 +49,14 @@ interface ContactFormValues {
   captchaToken?: string;
 }
 
-type ContactFormFields = keyof ContactFormValues;
-type ContactFormProps = FormProps<ContactFormValues>;
+const formFields = [
+  'name', 
+  'organization', 
+  'email', 
+  'phone', 
+  'inquiryType', 
+  'message'
+] as (keyof ContactFormValues)[];
 
 export default function ContactPage() {
   const [form] = Form.useForm<ContactFormValues>();
@@ -77,56 +88,48 @@ export default function ContactPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange: Required<ContactFormProps>['onFieldsChange'] = (changedFields) => {
+  const handleFormChange = (_: unknown, allFields: { name: NamePath; touched?: boolean; value?: unknown }[]) => {
     if (isSubmitting.current) return;
-
-    const changedFieldNames = changedFields
-      .filter(field => field.touched && field.value !== undefined)
-      .map(field => {
-        const name = Array.isArray(field.name) ? field.name[0] : field.name;
-        return name as ContactFormFields;
-      });
-
+  
+    const changedFieldNames = allFields
+      .filter(field => !!field.touched && field.value !== undefined && typeof field.name === 'string')
+      .map(field => Array.isArray(field.name) 
+        ? (field.name[0] as keyof ContactFormValues) 
+        : (field.name as keyof ContactFormValues))
+      .filter((name): name is keyof ContactFormValues => 
+        typeof name === 'string' && formFields.includes(name));
+  
     if (changedFieldNames.length === 0) return;
-
-    const formFields: ContactFormFields[] = [
-      'name', 
-      'organization', 
-      'email', 
-      'phone', 
-      'inquiryType', 
-      'message'
-    ];
+  
+    const rawValues = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
+    if (!rawValues || typeof rawValues !== 'object') {
+      throw new Error('Invalid form values');
+    }
     
-    const currentValues = form.getFieldsValue(formFields) as Record<ContactFormFields, unknown>;
-
-    const hasRealChanges = Object.entries(currentValues as Record<string, unknown>).some(([key, value]) => {
-      const typedKey = key as ContactFormFields;
-      return value !== lastValidValues.current[typedKey] &&
+    const currentValues: Pick<Required<ContactFormValues>, typeof formFields[number]> = 
+      rawValues as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+    
+  
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      return value !== lastValidValues.current[key as keyof ContactFormValues] &&
              value !== undefined &&
              key !== 'captchaToken';
     });
-
-    if (showCaptcha && 
-        form.getFieldValue("captchaToken") && 
-        hasRealChanges) {
+  
+    if (showCaptcha && form.getFieldValue("captchaToken") && hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues as Partial<ContactFormValues>;
+      lastValidValues.current = currentValues;
     }
   };
+  
 
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      const formFields: ContactFormFields[] = [
-        'name', 
-        'organization', 
-        'email', 
-        'phone', 
-        'inquiryType', 
-        'message'
-      ];
-      lastValidValues.current = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
+      const currentValues = form.getFieldsValue(
+        formFields
+      ) as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+      lastValidValues.current = currentValues;
     }
   };
 
@@ -136,15 +139,10 @@ export default function ContactPage() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        const formFields: ContactFormFields[] = [
-          'name', 
-          'organization', 
-          'email', 
-          'phone', 
-          'inquiryType', 
-          'message'
-        ];
-        lastValidValues.current = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
+        const currentValues = form.getFieldsValue(
+          formFields
+        ) as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+        lastValidValues.current = currentValues;
         isSubmitting.current = false;
         return;
       }

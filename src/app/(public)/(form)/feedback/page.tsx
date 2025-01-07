@@ -44,6 +44,7 @@ interface FeedbackFormValues {
   captchaToken?: string;
 }
 
+
 type FeedbackFormFields = keyof FeedbackFormValues;
 type FeedbackFormProps = FormProps<FeedbackFormValues>;
 
@@ -81,11 +82,18 @@ export default function FeedbackPage() {
     if (isSubmitting.current) return;
 
     const changedFieldNames = changedFields
-      .filter(field => field.touched && field.value !== undefined)
-      .map(field => {
-        const name = Array.isArray(field.name) ? field.name[0] : field.name;
-        return name as FeedbackFormFields;
-      });
+    .filter(field => field.touched && field.value !== undefined)
+    .map(field => {
+      if (Array.isArray(field.name)) {
+        if (typeof field.name[0] === 'string') {
+          return field.name[0] as FeedbackFormFields;
+        }
+      } else if (typeof field.name === 'string') {
+        return field.name as FeedbackFormFields;
+      }
+      throw new Error('Unexpected field name type');
+    });
+  
 
     if (changedFieldNames.length === 0) return;
 

@@ -85,7 +85,8 @@ export default function RegisterPage() {
   const handleSubmit = async () => {
     try {
       isSubmitting.current = true;
-      const values = await form.validateFields() as RegisterInput;
+      const values = await form.validateFields();
+
 
       if (!showCaptcha) {
         setShowCaptcha(true);
