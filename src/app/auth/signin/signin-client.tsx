@@ -17,7 +17,8 @@ import {
   Card,
   Skeleton,
 } from "antd";
-import { useSearchParams, useRouter } from "next/navigation";
+import type { FormProps } from 'antd';
+import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 
 const { Title, Text, Paragraph } = Typography;
@@ -33,6 +34,8 @@ const signInSchema = z.object({
 });
 
 type SignInSchema = z.infer<typeof signInSchema>;
+type SignInFormProps = FormProps<SignInSchema>;
+type SignInFormFields = keyof SignInSchema;
 
 const getProviderIcon = (providerId: string) => {
   switch (providerId) {
@@ -49,7 +52,6 @@ const getProviderIcon = (providerId: string) => {
 
 export default function SignInClient() {
   const { message } = App.useApp();
-  const router = useRouter();
   const [providers, setProviders] = useState<Record<
     LiteralUnion<BuiltInProviderType>,
     {
@@ -61,9 +63,9 @@ export default function SignInClient() {
     }
   > | null>(null);
   const searchParams = useSearchParams();
-  const error = searchParams?.get("error");
+  const errorParam = searchParams?.get("error");
 
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<SignInSchema>();
   const [isLoading, setIsLoading] = useState(true);
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
@@ -100,23 +102,24 @@ export default function SignInClient() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange = (changedFields: any[]) => {
-    // Don't process if submitting
+  const handleFormChange: Required<SignInFormProps>['onFieldsChange'] = (changedFields) => {
     if (isSubmitting.current) return;
 
-    // Only care about actual value changes
     const changedFieldNames = changedFields
       .filter(field => field.touched && field.value !== undefined)
-      .map(field => field.name[0] as keyof SignInSchema);
+      .map(field => {
+        const name = Array.isArray(field.name) ? field.name[0] : field.name;
+        return name as SignInFormFields;
+      });
 
     if (changedFieldNames.length === 0) return;
 
-    // Get current form values
-    const currentValues = form.getFieldsValue(['username', 'password']);
+    const formFields: SignInFormFields[] = ['username', 'password'];
+    const currentValues = form.getFieldsValue(formFields);
 
-    // Check if any non-captcha field actually changed from last valid values
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
-      return value !== lastValidValues.current[key as keyof SignInSchema] &&
+      const typedKey = key as SignInFormFields;
+      return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
              key !== 'captchaToken';
     });
@@ -125,7 +128,6 @@ export default function SignInClient() {
         form.getFieldValue("captchaToken") && 
         hasRealChanges) {
       resetCaptcha();
-      // Update last valid values after reset
       lastValidValues.current = currentValues;
     }
   };
@@ -133,8 +135,8 @@ export default function SignInClient() {
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      // Update last valid values when captcha is completed
-      lastValidValues.current = form.getFieldsValue(['username', 'password']);
+      const formFields: SignInFormFields[] = ['username', 'password'];
+      lastValidValues.current = form.getFieldsValue(formFields);
     }
   };
 
@@ -144,13 +146,12 @@ export default function SignInClient() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        // Store initial valid values
-        lastValidValues.current = form.getFieldsValue(['username', 'password']);
+        const formFields: SignInFormFields[] = ['username', 'password'];
+        lastValidValues.current = form.getFieldsValue(formFields);
         isSubmitting.current = false;
         return;
       }
 
-      // Validate with Zod schema
       const validatedData = signInSchema.parse(data);
 
       const result = await signIn("credentials", {
@@ -180,7 +181,6 @@ export default function SignInClient() {
     }
   };
 
-  // For OAuth providers
   const handleOAuthSignIn = (providerId: string) => {
     void signIn(providerId, {
       callbackUrl: "/",
@@ -236,9 +236,9 @@ export default function SignInClient() {
             Zelene Platform is an IoT platform founded by 5 amazing student
             developers
           </Paragraph>
-          {error && (
+          {errorParam && (
             <Text type="danger">
-              {error === "CredentialsSignin"
+              {errorParam === "CredentialsSignin"
                 ? "Invalid username or password"
                 : "Something went wrong"}
             </Text>

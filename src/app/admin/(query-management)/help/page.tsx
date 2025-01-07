@@ -14,7 +14,7 @@ import {
   Form,
 } from "antd";
 import type { TableProps } from "antd";
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 
 const { TextArea } = Input;
 

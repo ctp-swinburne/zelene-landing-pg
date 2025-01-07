@@ -14,6 +14,7 @@ import {
   Alert,
   message,
 } from "antd";
+import type { FormProps } from 'antd';
 import {
   MailOutlined,
   PhoneOutlined,
@@ -26,7 +27,6 @@ import type { ContactQuery } from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
 
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
 
@@ -43,6 +43,9 @@ interface ContactFormValues {
   status: QueryStatus;
   captchaToken?: string;
 }
+
+type ContactFormFields = keyof ContactFormValues;
+type ContactFormProps = FormProps<ContactFormValues>;
 
 export default function ContactPage() {
   const [form] = Form.useForm<ContactFormValues>();
@@ -74,19 +77,31 @@ export default function ContactPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange = (changedFields: any[]) => {
+  const handleFormChange: Required<ContactFormProps>['onFieldsChange'] = (changedFields) => {
     if (isSubmitting.current) return;
 
     const changedFieldNames = changedFields
       .filter(field => field.touched && field.value !== undefined)
-      .map(field => field.name[0] as keyof ContactFormValues);
+      .map(field => {
+        const name = Array.isArray(field.name) ? field.name[0] : field.name;
+        return name as ContactFormFields;
+      });
 
     if (changedFieldNames.length === 0) return;
 
-    const currentValues = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+    const formFields: ContactFormFields[] = [
+      'name', 
+      'organization', 
+      'email', 
+      'phone', 
+      'inquiryType', 
+      'message'
+    ];
+    const currentValues = form.getFieldsValue(formFields);
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
-      return value !== lastValidValues.current[key as keyof ContactFormValues] &&
+      const typedKey = key as ContactFormFields;
+      return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
              key !== 'captchaToken';
     });
@@ -102,7 +117,15 @@ export default function ContactPage() {
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      lastValidValues.current = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+      const formFields: ContactFormFields[] = [
+        'name', 
+        'organization', 
+        'email', 
+        'phone', 
+        'inquiryType', 
+        'message'
+      ];
+      lastValidValues.current = form.getFieldsValue(formFields);
     }
   };
 
@@ -112,7 +135,15 @@ export default function ContactPage() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        lastValidValues.current = form.getFieldsValue(['name', 'organization', 'email', 'phone', 'inquiryType', 'message']);
+        const formFields: ContactFormFields[] = [
+          'name', 
+          'organization', 
+          'email', 
+          'phone', 
+          'inquiryType', 
+          'message'
+        ];
+        lastValidValues.current = form.getFieldsValue(formFields);
         isSubmitting.current = false;
         return;
       }

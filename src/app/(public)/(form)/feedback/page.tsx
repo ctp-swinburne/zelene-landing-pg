@@ -16,6 +16,7 @@ import {
   Tag,
   message,
 } from "antd";
+import type { FormProps } from 'antd';
 import {
   SmileOutlined,
   HeartOutlined,
@@ -26,7 +27,7 @@ import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type { Feedback, FeedbackCategory } from "~/schema/queries";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
@@ -42,6 +43,9 @@ interface FeedbackFormValues {
   comments?: string;
   captchaToken?: string;
 }
+
+type FeedbackFormFields = keyof FeedbackFormValues;
+type FeedbackFormProps = FormProps<FeedbackFormValues>;
 
 export default function FeedbackPage() {
   const [form] = Form.useForm<FeedbackFormValues>();
@@ -73,22 +77,33 @@ export default function FeedbackPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange = (changedFields: any[]) => {
+  const handleFormChange: Required<FeedbackFormProps>['onFieldsChange'] = (changedFields) => {
     if (isSubmitting.current) return;
 
     const changedFieldNames = changedFields
       .filter(field => field.touched && field.value !== undefined)
-      .map(field => field.name[0] as keyof FeedbackFormValues);
+      .map(field => {
+        const name = Array.isArray(field.name) ? field.name[0] : field.name;
+        return name as FeedbackFormFields;
+      });
 
     if (changedFieldNames.length === 0) return;
 
-    const currentValues = form.getFieldsValue([
-      'category', 'satisfaction', 'usability', 'features',
-      'improvements', 'recommendation', 'comments'
-    ]);
+    const formFields: FeedbackFormFields[] = [
+      'category', 
+      'satisfaction', 
+      'usability', 
+      'features',
+      'improvements', 
+      'recommendation', 
+      'comments'
+    ];
+
+    const currentValues = form.getFieldsValue(formFields);
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
-      return value !== lastValidValues.current[key as keyof FeedbackFormValues] &&
+      const typedKey = key as FeedbackFormFields;
+      return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
              key !== 'captchaToken';
     });
@@ -104,10 +119,16 @@ export default function FeedbackPage() {
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      lastValidValues.current = form.getFieldsValue([
-        'category', 'satisfaction', 'usability', 'features',
-        'improvements', 'recommendation', 'comments'
-      ]);
+      const formFields: FeedbackFormFields[] = [
+        'category', 
+        'satisfaction', 
+        'usability', 
+        'features',
+        'improvements', 
+        'recommendation', 
+        'comments'
+      ];
+      lastValidValues.current = form.getFieldsValue(formFields);
     }
   };
 
@@ -117,10 +138,16 @@ export default function FeedbackPage() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        lastValidValues.current = form.getFieldsValue([
-          'category', 'satisfaction', 'usability', 'features',
-          'improvements', 'recommendation', 'comments'
-        ]);
+        const formFields: FeedbackFormFields[] = [
+          'category', 
+          'satisfaction', 
+          'usability', 
+          'features',
+          'improvements', 
+          'recommendation', 
+          'comments'
+        ];
+        lastValidValues.current = form.getFieldsValue(formFields);
         isSubmitting.current = false;
         return;
       }

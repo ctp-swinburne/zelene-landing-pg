@@ -12,10 +12,9 @@ import {
   Col,
   Space,
   Collapse,
-  Divider,
-  Tag,
   message,
 } from "antd";
+import type { FormProps } from 'antd';
 import {
   QuestionCircleOutlined,
   SearchOutlined,
@@ -30,9 +29,8 @@ import type {
   SupportPriority,
 } from "~/schema/queries";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
 const { Panel } = Collapse;
 
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
@@ -44,6 +42,9 @@ interface SupportRequestFormValues {
   priority: SupportPriority;
   captchaToken?: string;
 }
+
+type SupportFormFields = keyof SupportRequestFormValues;
+type SupportFormProps = FormProps<SupportRequestFormValues>;
 
 export default function HelpCenterPage() {
   const [form] = Form.useForm<SupportRequestFormValues>();
@@ -76,19 +77,24 @@ export default function HelpCenterPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
-  const handleFormChange = (changedFields: any[]) => {
+  const handleFormChange: Required<SupportFormProps>['onFieldsChange'] = (changedFields) => {
     if (isSubmitting.current) return;
 
     const changedFieldNames = changedFields
       .filter(field => field.touched && field.value !== undefined)
-      .map(field => field.name[0] as keyof SupportRequestFormValues);
+      .map(field => {
+        const name = Array.isArray(field.name) ? field.name[0] : field.name;
+        return name as SupportFormFields;
+      });
 
     if (changedFieldNames.length === 0) return;
 
-    const currentValues = form.getFieldsValue(['category', 'subject', 'description', 'priority']);
+    const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+    const currentValues = form.getFieldsValue(formFields);
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
-      return value !== lastValidValues.current[key as keyof SupportRequestFormValues] &&
+      const typedKey = key as SupportFormFields;
+      return value !== lastValidValues.current[typedKey] &&
              value !== undefined &&
              key !== 'captchaToken';
     });
@@ -104,7 +110,8 @@ export default function HelpCenterPage() {
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      lastValidValues.current = form.getFieldsValue(['category', 'subject', 'description', 'priority']);
+      const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+      lastValidValues.current = form.getFieldsValue(formFields);
     }
   };
 
@@ -114,7 +121,8 @@ export default function HelpCenterPage() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        lastValidValues.current = form.getFieldsValue(['category', 'subject', 'description', 'priority']);
+        const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+        lastValidValues.current = form.getFieldsValue(formFields);
         isSubmitting.current = false;
         return;
       }

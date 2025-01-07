@@ -1,4 +1,3 @@
-//issues page
 "use client";
 
 import { type UploadFile } from "antd/es/upload/interface";
@@ -389,12 +388,12 @@ export default function ReportIssuePage() {
                 <Button
                   type="primary"
                   danger
-                  onClick={() => {
+                  onClick={async () => {
                     if (!captchaToken) {
                       setShowCaptcha(true);
                       return;
                     }
-                    handleSubmit();
+                    await handleSubmit();
                   }}
                   icon={<BugOutlined />}
                   loading={Boolean(isSubmitting || submitMutation.isPending)}

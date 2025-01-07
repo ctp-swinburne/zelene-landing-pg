@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import { Table, Tag, Card, Select, Button, Space } from "antd";
+import { Table, Tag, Card, Button, Space } from "antd";
 import type { TableProps } from "antd";
 import { FilterFilled, SearchOutlined, StarFilled } from "@ant-design/icons";
 import FeedbackDetailDrawer from "./_components/FeedbackDetailDrawer";
