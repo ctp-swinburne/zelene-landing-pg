@@ -47,9 +47,9 @@ const AdminPage: NextPage = () => {
       badge: `${newItemsCounts?.feedback ?? 0} unread`,
     },
     {
-      title: "Help Center",
+      title: "Support Center",
       desc: "Support documentation & guides",
-      path: "/admin/help",
+      path: "/admin/support",
       badge: `${newItemsCounts?.supportRequests ?? 0} unread`,
     },
   ];
