@@ -19,6 +19,14 @@ interface FieldData {
   name: (string | number)[];
 }
 
+interface FormValues {
+  username?: string;
+  email?: string;
+  name?: string;
+  password?: string;
+  captchaToken?: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const { message } = App.useApp();
@@ -41,55 +49,53 @@ export default function RegisterPage() {
   });
 
   const resetCaptcha = () => {
-    form.setFieldValue("captchaToken", undefined as RegisterInput["captchaToken"]);
-    setShouldResetCaptcha((prev) => !prev);
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
   };
 
   const handleFormChange = (changedFields: FieldData[]) => {
+    // Don't process if submitting
     if (isSubmitting.current) return;
 
-    const currentValues = form.getFieldsValue([
-      "username",
-      "email",
-      "password",
-      "name",
-    ]) as Partial<RegisterInput>;
+    // Only care about actual value changes
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => String(field.name[0]) as keyof RegisterInput);
+
+    if (changedFieldNames.length === 0) return;
+
+    // Get current form values
+    const currentValues = form.getFieldsValue() as FormValues;
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
-      return (
-        value !== lastValidValues.current[key as keyof RegisterInput] &&
-        value !== undefined &&
-        key !== "captchaToken"
-      );
+      return value !== lastValidValues.current[key as keyof RegisterInput] &&
+             value !== undefined &&
+             key !== 'captchaToken';
     });
 
-    if (
-      showCaptcha &&
-      form.getFieldValue("captchaToken") &&
-      hasRealChanges
-    ) {
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
       resetCaptcha();
-      lastValidValues.current = currentValues;
+      // Update last valid values after reset
+      lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']) as Partial<RegisterInput>;
     }
   };
 
   const handleSubmit = async () => {
     try {
       isSubmitting.current = true;
-      const values = (await form.validateFields()) as RegisterInput;
+      const values = await form.validateFields() as RegisterInput;
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        lastValidValues.current = form.getFieldsValue([
-          "username",
-          "email",
-          "password",
-          "name",
-        ]) as Partial<RegisterInput>;
+        // Store initial valid values
+        lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']) as Partial<RegisterInput>;
         isSubmitting.current = false;
         return;
       }
 
+      // Validate with Zod schema
       const validatedData = registerInputSchema.parse(values);
       registerMutation.mutate(validatedData);
     } catch (error) {
@@ -103,13 +109,9 @@ export default function RegisterPage() {
 
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
-      form.setFieldValue("captchaToken", token as RegisterInput["captchaToken"]);
-      lastValidValues.current = form.getFieldsValue([
-        "username",
-        "email",
-        "password",
-        "name",
-      ]) as Partial<RegisterInput>;
+      form.setFieldValue("captchaToken", token);
+      // Update last valid values when captcha is completed
+      lastValidValues.current = form.getFieldsValue(['username', 'email', 'password', 'name']) as Partial<RegisterInput>;
     }
   };
 
@@ -134,8 +136,8 @@ export default function RegisterPage() {
         </div>
 
         <div className="mt-8">
-          <Form
-            form={form}
+          <Form 
+            form={form} 
             layout="vertical"
             onFieldsChange={handleFormChange}
           >
