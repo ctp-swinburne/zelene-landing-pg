@@ -20,18 +20,6 @@ enum UserRole {
     TENANT_ADMIN
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
 // Necessary for Next auth
 model Account {
     id                       String  @id @default(cuid())
@@ -226,4 +214,60 @@ model Social {
     github   String?
     linkedin String?
     facebook String?
+}
+
+model Post {
+    id          Int      @id @default(autoincrement())
+    title       String
+    excerpt     String   @db.Text
+    content     String   @db.Text
+    publishedAt DateTime @default(now())
+    updatedAt   DateTime @updatedAt
+
+    // Stats
+    viewCount    Int @default(0)
+    likeCount    Int @default(0)
+    commentCount Int @default(0)
+
+    // Keep the original user relation naming
+    createdBy   User   @relation(fields: [createdById], references: [id])
+    createdById String
+
+    // Tags - many-to-many relationship
+    tags TagsOnPosts[]
+
+    // Related posts - many-to-many self-relation
+    relatedTo   RelatedPosts[] @relation("RelatedFrom")
+    relatedFrom RelatedPosts[] @relation("RelatedTo")
+
+    @@index([title])
+    @@index([publishedAt])
+    @@index([createdById])
+}
+
+// Tags implementation
+model Tag {
+    id    Int           @id @default(autoincrement())
+    name  String        @unique
+    posts TagsOnPosts[]
+}
+
+// Join table for posts and tags
+model TagsOnPosts {
+    post   Post @relation(fields: [postId], references: [id])
+    postId Int
+    tag    Tag  @relation(fields: [tagId], references: [id])
+    tagId  Int
+
+    @@id([postId, tagId])
+}
+
+// Related posts implementation
+model RelatedPosts {
+    post          Post @relation("RelatedTo", fields: [postId], references: [id])
+    postId        Int
+    relatedPost   Post @relation("RelatedFrom", fields: [relatedPostId], references: [id])
+    relatedPostId Int
+
+    @@id([postId, relatedPostId])
 }
