@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { useState } from "react";
 import type { RouterOutputs } from "~/trpc/react";
 import { api } from "~/trpc/react";
@@ -107,7 +107,7 @@ const CreatePost: React.FC = () => {
   const executeCommand = (command: EditorCommand) => {
     const prefix = command.prefix;
     const suffix = command.suffix;
-    const placeholder = command.placeholder || "text";
+    const placeholder = command.placeholder ?? "text";
 
     const beforeSelection = content.substring(0, selectionStart);
     const selection =
@@ -216,7 +216,7 @@ const CreatePost: React.FC = () => {
                   options={headerOptions}
                   placeholder="Heading"
                   style={{ width: 120 }}
-                  onChange={(value) =>
+                  onChange={(value: string) =>
                     executeCommand({ prefix: value, suffix: " " })
                   }
                 />
