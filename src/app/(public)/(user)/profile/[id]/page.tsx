@@ -1,34 +1,24 @@
+// MainProfile.tsx
 "use client";
 
 import { useParams } from "next/navigation";
 import { api } from "~/trpc/react";
 import type { RouterOutputs } from "~/trpc/react";
-import {
-  Button,
-  Card,
-  Avatar,
-  Typography,
-  Descriptions,
-  Space,
-  Skeleton,
-} from "antd";
-import { EditOutlined, UserOutlined } from "@ant-design/icons";
-import Link from "next/link";
+import { Typography, Skeleton, Row, Col } from "antd";
+import { useSession } from "next-auth/react";
+import { ProfileHeader } from "./_components/ProfileHeader";
+import { AboutSection } from "./_components/AboutSection";
+import { CurrentSection } from "./_components/CurrentSection";
+import { SkillsSection } from "./_components/SkillsSection";
+import { SocialLinks } from "./_components/SocialLinks";
 
-const { Title, Text } = Typography;
-
-type ProfileData = RouterOutputs["profile"]["getProfile"];
+const { Title } = Typography;
 
 export default function ProfilePage() {
   const params = useParams();
-
-  // Log params to see what we're getting
-  console.log("URL Parameters:", params);
-
-  // Assuming the route is something like /profile/[id]
+  const { data: session } = useSession();
   const userId = typeof params?.id === "string" ? params.id : null;
 
-  // Fetch profile data with proper error handling
   const {
     data: profile,
     isLoading,
@@ -37,21 +27,12 @@ export default function ProfilePage() {
     { userId: userId! },
     {
       enabled: !!userId,
-      retry: 1, // Limit retries to avoid infinite loops
+      retry: 1,
     },
   );
 
-  // Fetch current user's profile
-  const { data: currentProfile } = api.profile.getCurrentProfile.useQuery(
-    undefined,
-    {
-      enabled: !!userId,
-    },
-  );
+  const isOwnProfile = session?.user?.id === profile?.id;
 
-  const isOwnProfile = currentProfile?.id === profile?.id;
-
-  // Show loading state
   if (isLoading) {
     return (
       <div className="container mx-auto p-6">
@@ -60,124 +41,36 @@ export default function ProfilePage() {
     );
   }
 
-  // Show error state
-  if (!userId) {
+  if (!userId || error || !profile) {
     return (
       <div className="container mx-auto p-6">
-        <Title level={4}>Invalid profile URL</Title>
-      </div>
-    );
-  }
-
-  // Show error state with more details
-  if (error) {
-    return (
-      <div className="container mx-auto p-6">
-        <Title level={4}>Error loading profile: {error.message}</Title>
-      </div>
-    );
-  }
-
-  // Show not found state
-  if (!profile) {
-    return (
-      <div className="container mx-auto p-6">
-        <Title level={4}>Profile not found for ID: {userId}</Title>
+        <Title level={4}>
+          {!userId
+            ? "Invalid profile URL"
+            : error
+              ? `Error loading profile: ${error.message}`
+              : `Profile not found for ID: ${userId}`}
+        </Title>
       </div>
     );
   }
 
   return (
     <div className="container mx-auto p-6">
-      <Card>
-        <div className="flex flex-col items-center gap-6 md:flex-row md:items-start">
-          <Avatar
-            size={128}
-            src={profile.image}
-            icon={!profile.image ? <UserOutlined /> : undefined}
-          />
+      <Row gutter={[24, 24]}>
+        {/* Left Column */}
+        <Col xs={24} lg={8}>
+          <ProfileHeader profile={profile} isOwnProfile={isOwnProfile} />
+          <SkillsSection profile={profile} />
+          <SocialLinks profile={profile} />
+        </Col>
 
-          <div className="flex-1">
-            <div className="flex items-start justify-between">
-              <div>
-                <Title level={2}>{profile.name}</Title>
-                <Text type="secondary">@{profile.username}</Text>
-              </div>
-
-              {isOwnProfile && (
-                <Link href="/settings">
-                  <Button type="primary" icon={<EditOutlined />}>
-                    Edit Profile
-                  </Button>
-                </Link>
-              )}
-            </div>
-
-            <Descriptions column={1} className="mt-6">
-              {profile.profile && (
-                <>
-                  {profile.profile.bio && (
-                    <Descriptions.Item label="Bio">
-                      {profile.profile.bio}
-                    </Descriptions.Item>
-                  )}
-                  {profile.profile.location && (
-                    <Descriptions.Item label="Location">
-                      {profile.profile.location}
-                    </Descriptions.Item>
-                  )}
-                </>
-              )}
-              <Descriptions.Item label="Joined">
-                {new Date(profile.joined).toLocaleDateString()}
-              </Descriptions.Item>
-            </Descriptions>
-
-            {profile.social && (
-              <Card size="small" title="Social Links" className="mt-6">
-                <Space direction="vertical">
-                  {profile.social.twitter && (
-                    <Text>
-                      Twitter:{" "}
-                      <a
-                        href={`https://twitter.com/${profile.social.twitter}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        @{profile.social.twitter}
-                      </a>
-                    </Text>
-                  )}
-                  {profile.social.github && (
-                    <Text>
-                      GitHub:{" "}
-                      <a
-                        href={`https://github.com/${profile.social.github}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {profile.social.github}
-                      </a>
-                    </Text>
-                  )}
-                  {profile.social.website && (
-                    <Text>
-                      Website:{" "}
-                      <a
-                        href={profile.social.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {profile.social.website}
-                      </a>
-                    </Text>
-                  )}
-                </Space>
-              </Card>
-            )}
-          </div>
-        </div>
-      </Card>
+        {/* Right Column */}
+        <Col xs={24} lg={16}>
+          <AboutSection profile={profile} />
+          <CurrentSection profile={profile} />
+        </Col>
+      </Row>
     </div>
   );
 }
