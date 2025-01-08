@@ -1,10 +1,12 @@
 "use client";
-import { useState } from "react";
-import { Input, Typography, Card, Tag, Descriptions, Empty, Steps } from "antd";
+import { useState, useRef } from "react";
+import { Input, Typography, Card, Tag, Descriptions, Empty, Steps, message } from "antd";
 import { SearchOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { api } from "~/trpc/react";
 import type { RouterOutputs } from "~/trpc/react";
+import dynamic from "next/dynamic";
 
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
 const { Title, Text } = Typography;
 
 const statusColors = {
@@ -28,7 +30,6 @@ const QueryDetails = ({
 }) => {
   const { type, data } = result;
 
-  // Render different content based on query type
   const renderContent = () => {
     switch (type) {
       case "contact":
@@ -134,31 +135,109 @@ const QueryDetails = ({
 
 const QueryLookupPage = () => {
   const [queryId, setQueryId] = useState("");
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const lastQueryId = useRef<string>("");
+  const [messageApi, contextHolder] = message.useMessage();
+
   const {
     data: result,
     error,
     isLoading,
+    refetch
   } = api.queryLookup.getQueryById.useQuery(
-    { id: queryId },
-    { enabled: queryId.length > 0, retry: false },
+    { 
+      id: queryId.trim()
+    },
+    { 
+      enabled: queryId.length > 0 && !!captchaToken,
+      retry: false 
+    }
   );
+
+  const resetCaptcha = () => {
+    setCaptchaToken(null);
+    setShouldResetCaptcha(prev => !prev);
+  };
+
+  const handleSearch = (value: string) => {
+    if (value === "") {
+      setQueryId("");
+      setShowCaptcha(false);
+      return;
+    }
+    
+    if (captchaToken) {
+      resetCaptcha();
+    }
+    
+    setQueryId(value);
+    setShowCaptcha(true);
+  };
+
+  const handleSearchSubmit = () => {
+    const trimmedValue = queryId.trim();
+    setQueryId(trimmedValue);
+    
+    if (!trimmedValue) {
+      setShowCaptcha(false);
+      return;
+    }
+
+    if (!captchaToken) {
+      messageApi.error("Please complete the captcha");
+      return;
+    }
+    
+    void refetch();
+  };
+
+  const handleCaptchaSubmit = async () => {
+    if (!captchaToken) {
+      messageApi.error("Please complete the captcha");
+      return;
+    }
+    await refetch();
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token && queryId) {
+      setCaptchaToken(token);
+      setQueryId(queryId.trim());
+      void refetch();
+    }
+  };
 
   return (
     <div className="mx-auto max-w-5xl p-6">
+      {contextHolder}
       <Title level={2}>Query Lookup</Title>
       <Text type="secondary" className="mb-6 block">
         Enter your query ID to check its status and details
       </Text>
 
-      <Input.Search
-        size="large"
-        placeholder="Enter your query ID"
-        loading={isLoading}
-        value={queryId}
-        onChange={(e) => setQueryId(e.target.value)}
-        status={error ? "error" : ""}
-        className="max-w-xl"
-      />
+      <div className="space-y-4 max-w-xl">
+        <Input.Search
+          size="large"
+          placeholder="Enter your query ID"
+          loading={isLoading}
+          value={queryId}
+          onChange={(e) => handleSearch(e.target.value)}
+          onSearch={handleSearchSubmit}
+          status={error ? "error" : ""}
+        />
+
+        {showCaptcha && (
+          <div className="mt-4">
+            <ReCAPTCHA
+              key={String(shouldResetCaptcha)}
+              sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+              onChange={handleCaptchaChange}
+            />
+          </div>
+        )}
+      </div>
 
       {error && (
         <Text type="danger" className="mt-2 block">
