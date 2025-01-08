@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Typography, Card, Layout, Space, Divider } from "antd";
+import { Typography, Card, Layout, Space } from "antd";
 
 const { Title, Paragraph, Text } = Typography;
 const { Content } = Layout;

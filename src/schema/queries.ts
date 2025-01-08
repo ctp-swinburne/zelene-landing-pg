@@ -56,6 +56,7 @@ export const ContactQuerySchema = z.object({
   inquiryType: InquiryTypeSchema,
   message: z.string().min(10, "Message must be at least 10 characters"),
   status: QueryStatusSchema.optional().default("NEW"),
+  captchaToken: z.string().optional()
 });
 
 // Feedback form schema
@@ -68,6 +69,7 @@ export const FeedbackSchema = z.object({
   recommendation: z.boolean(),
   comments: z.string().optional(),
   status: QueryStatusSchema.optional().default("NEW"),
+  captchaToken: z.string().optional(),
 });
 
 // Support request schema
@@ -77,6 +79,7 @@ export const SupportRequestSchema = z.object({
   description: z.string().min(10, "Description must be at least 10 characters"),
   priority: SupportPrioritySchema,
   status: QueryStatusSchema.optional().default("NEW"),
+  captchaToken: z.string().optional(),
 });
 
 // Technical issue schema
@@ -92,6 +95,7 @@ export const TechnicalIssueSchema = z.object({
     .min(10, "Expected behavior must be at least 10 characters"),
   attachments: z.array(z.string()).optional(),
   status: QueryStatusSchema.optional().default("NEW"),
+  
 });
 
 export const FileUploadSchema = z.object({

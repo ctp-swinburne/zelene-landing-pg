@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { type BuiltInProviderType } from "next-auth/providers";
 import { type LiteralUnion, getProviders, signIn } from "next-auth/react";
 import { z } from "zod";
@@ -17,16 +17,25 @@ import {
   Card,
   Skeleton,
 } from "antd";
-import { useSearchParams, useRouter } from "next/navigation";
+import type { FormProps } from 'antd';
+import { useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 
 const { Title, Text, Paragraph } = Typography;
+
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
+  ssr: false,
+});
 
 const signInSchema = z.object({
   username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+  captchaToken: z.string().optional(),
 });
 
 type SignInSchema = z.infer<typeof signInSchema>;
+type SignInFormProps = FormProps<SignInSchema>;
+type SignInFormFields = keyof SignInSchema;
 
 const getProviderIcon = (providerId: string) => {
   switch (providerId) {
@@ -43,7 +52,6 @@ const getProviderIcon = (providerId: string) => {
 
 export default function SignInClient() {
   const { message } = App.useApp();
-  const router = useRouter();
   const [providers, setProviders] = useState<Record<
     LiteralUnion<BuiltInProviderType>,
     {
@@ -55,10 +63,14 @@ export default function SignInClient() {
     }
   > | null>(null);
   const searchParams = useSearchParams();
-  const error = searchParams?.get("error");
+  const errorParam = searchParams?.get("error");
 
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<SignInSchema>();
   const [isLoading, setIsLoading] = useState(true);
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<SignInSchema>>({});
+  const isSubmitting = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -85,11 +97,73 @@ export default function SignInClient() {
     };
   }, []);
 
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
+
+  const handleFormChange: Required<SignInFormProps>['onFieldsChange'] = (changedFields) => {
+    if (isSubmitting.current) return;
+
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => {
+        if (Array.isArray(field.name)) {
+          if (typeof field.name[0] === 'string') {
+            return field.name[0] as SignInFormFields;
+          }
+        } else if (typeof field.name === 'string') {
+          return field.name as SignInFormFields;
+        }
+        throw new Error('Unexpected field name type');
+      });
+
+    if (changedFieldNames.length === 0) return;
+
+    const formFields: SignInFormFields[] = ['username', 'password'];
+    const currentValues = form.getFieldsValue(formFields) as Record<SignInFormFields, unknown>;
+
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      const typedKey = key as SignInFormFields;
+      return value !== lastValidValues.current[typedKey] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      lastValidValues.current = currentValues as Partial<SignInSchema>;
+    }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      const formFields: SignInFormFields[] = ['username', 'password'];
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<SignInSchema>;
+    }
+  };
+
   const onSubmit = async (data: SignInSchema) => {
     try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        const formFields: SignInFormFields[] = ['username', 'password'];
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<SignInSchema>;
+        isSubmitting.current = false;
+        return;
+      }
+
+      const validatedData = signInSchema.parse(data);
+
       const result = await signIn("credentials", {
-        username: data.username,
-        password: data.password,
+        username: validatedData.username,
+        password: validatedData.password,
+        captchaToken: validatedData.captchaToken,
         redirect: false,
         callbackUrl: "/",
       });
@@ -100,16 +174,19 @@ export default function SignInClient() {
             ? "Invalid username or password"
             : "Something went wrong",
         );
+        resetCaptcha();
       } else {
         message.success("Signed in successfully!");
         window.location.href = result?.url ?? "/";
       }
     } catch (error) {
       message.error("An unexpected error occurred");
+      resetCaptcha();
+    } finally {
+      isSubmitting.current = false;
     }
   };
 
-  // For OAuth providers
   const handleOAuthSignIn = (providerId: string) => {
     void signIn(providerId, {
       callbackUrl: "/",
@@ -165,9 +242,9 @@ export default function SignInClient() {
             Zelene Platform is an IoT platform founded by 5 amazing student
             developers
           </Paragraph>
-          {error && (
+          {errorParam && (
             <Text type="danger">
-              {error === "CredentialsSignin"
+              {errorParam === "CredentialsSignin"
                 ? "Invalid username or password"
                 : "Something went wrong"}
             </Text>
@@ -194,7 +271,12 @@ export default function SignInClient() {
           )}
 
           {credentialsProvider && (
-            <Form form={form} onFinish={onSubmit} layout="vertical">
+            <Form 
+              form={form} 
+              onFinish={onSubmit} 
+              layout="vertical"
+              onFieldsChange={handleFormChange}
+            >
               <Form.Item
                 label="Username"
                 name="username"
@@ -209,9 +291,29 @@ export default function SignInClient() {
               >
                 <Input.Password />
               </Form.Item>
+
+              {showCaptcha && (
+                <Form.Item
+                  name="captchaToken"
+                  rules={[
+                    { required: true, message: "Please complete the captcha" },
+                  ]}
+                >
+                  <ReCAPTCHA
+                    key={String(shouldResetCaptcha)}
+                    sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                    onChange={handleCaptchaChange}
+                  />
+                </Form.Item>
+              )}
+
               <Form.Item>
-                <Button type="primary" htmlType="submit" block>
-                  Sign in with username
+                <Button 
+                  type="primary" 
+                  htmlType="submit" 
+                  block
+                >
+                  {showCaptcha ? "Sign in" : "Continue"}
                 </Button>
               </Form.Item>
             </Form>

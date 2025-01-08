@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   Form,
@@ -14,18 +14,26 @@ import {
   Alert,
   message,
 } from "antd";
+import type { NamePath } from 'antd/es/form/interface';
 import {
   MailOutlined,
   PhoneOutlined,
   GlobalOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type { ContactQuery } from "~/schema/queries";
 
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
+
+import ReCAPTCHA from "react-google-recaptcha";
+
+const ReCAPTCHAComponent = dynamic(() => import("react-google-recaptcha"), {
+  ssr: false,
+}) as typeof ReCAPTCHA;
+
 
 type InquiryType = "PARTNERSHIP" | "SALES" | "MEDIA" | "GENERAL";
 type QueryStatus = "NEW" | "IN_PROGRESS" | "RESOLVED" | "CANCELLED";
@@ -38,28 +46,118 @@ interface ContactFormValues {
   inquiryType: InquiryType;
   message: string;
   status: QueryStatus;
+  captchaToken?: string;
 }
+
+const formFields = [
+  'name', 
+  'organization', 
+  'email', 
+  'phone', 
+  'inquiryType', 
+  'message'
+] as (keyof ContactFormValues)[];
 
 export default function ContactPage() {
   const [form] = Form.useForm<ContactFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<ContactFormValues>>({});
+  const isSubmitting = useRef(false);
 
   const mutation = api.queries.submitContact.useMutation({
     onSuccess: () => {
       messageApi.success("Your message has been sent successfully!");
       form.resetFields();
+      setShowCaptcha(false);
+      setShouldResetCaptcha(prev => !prev);
+      lastValidValues.current = {};
+      isSubmitting.current = false;
     },
     onError: (error) => {
       messageApi.error("Failed to send message. Please try again.");
       console.error("Form submission error:", error);
+      resetCaptcha();
+      isSubmitting.current = false;
     },
   });
 
-  const onFinish = (values: ContactFormValues) => {
-    // Since our form values already match the ContactQuery type, we can pass them directly
-    const contactData: ContactQuery = values;
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
 
-    mutation.mutate(contactData);
+  const handleFormChange = (_: unknown, allFields: { name: NamePath; touched?: boolean; value?: unknown }[]) => {
+    if (isSubmitting.current) return;
+  
+    const changedFieldNames = allFields
+      .filter(field => !!field.touched && field.value !== undefined && typeof field.name === 'string')
+      .map(field => Array.isArray(field.name) 
+        ? (field.name[0] as keyof ContactFormValues) 
+        : (field.name as keyof ContactFormValues))
+      .filter((name): name is keyof ContactFormValues => 
+        typeof name === 'string' && formFields.includes(name));
+  
+    if (changedFieldNames.length === 0) return;
+  
+    const rawValues = form.getFieldsValue(formFields) as Partial<ContactFormValues>;
+    if (!rawValues || typeof rawValues !== 'object') {
+      throw new Error('Invalid form values');
+    }
+    
+    const currentValues: Pick<Required<ContactFormValues>, typeof formFields[number]> = 
+      rawValues as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+    
+  
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      return value !== lastValidValues.current[key as keyof ContactFormValues] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+  
+    if (showCaptcha && form.getFieldValue("captchaToken") && hasRealChanges) {
+      resetCaptcha();
+      lastValidValues.current = currentValues;
+    }
+  };
+  
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      const currentValues = form.getFieldsValue(
+        formFields
+      ) as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+      lastValidValues.current = currentValues;
+    }
+  };
+
+  const onFinish = (values: ContactFormValues) => {
+    try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        const currentValues = form.getFieldsValue(
+          formFields
+        ) as Pick<Required<ContactFormValues>, typeof formFields[number]>;
+        lastValidValues.current = currentValues;
+        isSubmitting.current = false;
+        return;
+      }
+
+      const contactData: ContactQuery = { 
+        ...values,
+        status: "NEW" 
+      };
+
+      mutation.mutate(contactData);
+    } catch (error) {
+      isSubmitting.current = false;
+      console.error("Form submission error:", error);
+      resetCaptcha();
+    }
   };
 
   const inquiryTypes = [
@@ -113,6 +211,7 @@ export default function ContactPage() {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
+                onFieldsChange={handleFormChange}
                 className="mt-4"
               >
                 <Row gutter={16}>
@@ -207,6 +306,21 @@ export default function ContactPage() {
                   />
                 </Form.Item>
 
+                {showCaptcha && (
+                  <Form.Item
+                    name="captchaToken"
+                    rules={[
+                      { required: true, message: "Please complete the captcha" },
+                    ]}
+                  >
+                    <ReCAPTCHA
+                      key={String(shouldResetCaptcha)}
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                      onChange={handleCaptchaChange}
+                    />
+                  </Form.Item>
+                )}
+
                 <Form.Item>
                   <Button
                     type="primary"
@@ -217,7 +331,7 @@ export default function ContactPage() {
                     style={{ backgroundColor: "#0bdc84" }}
                     loading={mutation.isPending}
                   >
-                    {mutation.isPending ? "Sending..." : "Send Message"}
+                    {mutation.isPending ? "Sending..." : (showCaptcha ? "Send Message" : "Continue")}
                   </Button>
                 </Form.Item>
               </Form>

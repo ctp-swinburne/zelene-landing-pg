@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   Form,
@@ -16,43 +16,163 @@ import {
   Tag,
   message,
 } from "antd";
+import type { FormProps } from 'antd';
 import {
   SmileOutlined,
   HeartOutlined,
   BulbOutlined,
   StarOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type { Feedback, FeedbackCategory } from "~/schema/queries";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 
-type FeedbackFormValues = Omit<Feedback, "status">;
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
+
+interface FeedbackFormValues {
+  category: FeedbackCategory;
+  satisfaction: number;
+  usability: number;
+  features: string[];
+  improvements: string;
+  recommendation: boolean;
+  comments?: string;
+  captchaToken?: string;
+}
+
+
+type FeedbackFormFields = keyof FeedbackFormValues;
+type FeedbackFormProps = FormProps<FeedbackFormValues>;
 
 export default function FeedbackPage() {
   const [form] = Form.useForm<FeedbackFormValues>();
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState(false);
+  const lastValidValues = useRef<Partial<FeedbackFormValues>>({});
+  const isSubmitting = useRef(false);
 
   const mutation = api.queries.submitFeedback.useMutation({
     onSuccess: () => {
       messageApi.success("Thank you for your feedback!");
       form.resetFields();
+      setShowCaptcha(false);
+      setShouldResetCaptcha(prev => !prev);
+      lastValidValues.current = {};
+      isSubmitting.current = false;
     },
     onError: (error) => {
       messageApi.error("Failed to submit feedback. Please try again.");
       console.error("Form submission error:", error);
+      resetCaptcha();
+      isSubmitting.current = false;
     },
   });
 
-  const onFinish = (values: Omit<FeedbackFormValues, "status">) => {
-    const feedbackData: Feedback = {
-      ...values,
-      status: "NEW",
-    };
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
 
-    mutation.mutate(feedbackData);
+  const handleFormChange: Required<FeedbackFormProps>['onFieldsChange'] = (changedFields) => {
+    if (isSubmitting.current) return;
+
+    const changedFieldNames = changedFields
+    .filter(field => field.touched && field.value !== undefined)
+    .map(field => {
+      if (Array.isArray(field.name)) {
+        if (typeof field.name[0] === 'string') {
+          return field.name[0] as FeedbackFormFields;
+        }
+      } else if (typeof field.name === 'string') {
+        return field.name as FeedbackFormFields;
+      }
+      throw new Error('Unexpected field name type');
+    });
+  
+
+    if (changedFieldNames.length === 0) return;
+
+    const formFields: FeedbackFormFields[] = [
+      'category', 
+      'satisfaction', 
+      'usability', 
+      'features',
+      'improvements', 
+      'recommendation', 
+      'comments'
+    ];
+
+    const currentValues = form.getFieldsValue(formFields) as Record<FeedbackFormFields, unknown>;
+
+    const hasRealChanges = Object.entries(currentValues as Record<string, unknown>).some(([key, value]) => {
+      const typedKey = key as FeedbackFormFields;
+      return value !== lastValidValues.current[typedKey] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      lastValidValues.current = currentValues as Partial<FeedbackFormValues>;
+    }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      const formFields: FeedbackFormFields[] = [
+        'category', 
+        'satisfaction', 
+        'usability', 
+        'features',
+        'improvements', 
+        'recommendation', 
+        'comments'
+      ];
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
+    }
+  };
+
+  const onFinish = (values: FeedbackFormValues) => {
+    try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        const formFields: FeedbackFormFields[] = [
+          'category', 
+          'satisfaction', 
+          'usability', 
+          'features',
+          'improvements', 
+          'recommendation', 
+          'comments'
+        ];
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
+        isSubmitting.current = false;
+        return;
+      }
+
+      const { captchaToken, ...formValues } = values;
+      const feedbackData: Feedback = {
+        ...formValues,
+        status: "NEW",
+        captchaToken
+      };
+
+      mutation.mutate(feedbackData);
+    } catch (error) {
+      isSubmitting.current = false;
+      console.error("Form submission error:", error);
+      resetCaptcha();
+    }
   };
 
   const feedbackCategories = [
@@ -95,6 +215,7 @@ export default function FeedbackPage() {
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
+                onFieldsChange={handleFormChange}
                 className="mt-4"
               >
                 <Form.Item
@@ -178,8 +299,7 @@ export default function FeedbackPage() {
                     },
                     {
                       min: 10,
-                      message:
-                        "Improvement details must be at least 10 characters",
+                      message: "Improvement details must be at least 10 characters",
                     },
                   ]}
                 >
@@ -192,9 +312,7 @@ export default function FeedbackPage() {
                 <Form.Item
                   name="recommendation"
                   label="Would you recommend the Zelene Platform to others?"
-                  rules={[
-                    { required: true, message: "Please select an option" },
-                  ]}
+                  rules={[{ required: true, message: "Please select an option" }]}
                 >
                   <Radio.Group>
                     <Space direction="vertical">
@@ -211,6 +329,21 @@ export default function FeedbackPage() {
                   />
                 </Form.Item>
 
+                {showCaptcha && (
+                  <Form.Item
+                    name="captchaToken"
+                    rules={[
+                      { required: true, message: "Please complete the captcha" },
+                    ]}
+                  >
+                    <ReCAPTCHA
+                      key={String(shouldResetCaptcha)}
+                      sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                      onChange={handleCaptchaChange}
+                    />
+                  </Form.Item>
+                )}
+
                 <Form.Item>
                   <Button
                     type="primary"
@@ -221,7 +354,7 @@ export default function FeedbackPage() {
                     style={{ backgroundColor: "#722ed1" }}
                     loading={mutation.isPending}
                   >
-                    {mutation.isPending ? "Submitting..." : "Submit Feedback"}
+                    {mutation.isPending ? "Submitting..." : (showCaptcha ? "Submit Feedback" : "Continue")}
                   </Button>
                 </Form.Item>
               </Form>

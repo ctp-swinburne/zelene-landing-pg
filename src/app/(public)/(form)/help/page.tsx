@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Button,
   Form,
@@ -12,16 +12,16 @@ import {
   Col,
   Space,
   Collapse,
-  Divider,
-  Tag,
   message,
 } from "antd";
+import type { FormProps, FormInstance } from 'antd';
 import {
   QuestionCircleOutlined,
   SearchOutlined,
   BookOutlined,
   MessageOutlined,
 } from "@ant-design/icons";
+import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
 import type {
   SupportRequest,
@@ -29,36 +29,123 @@ import type {
   SupportPriority,
 } from "~/schema/queries";
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
-const { Option } = Select;
 const { Panel } = Collapse;
 
-type SupportRequestValues = Omit<SupportRequest, "status">;
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false });
+
+interface SupportRequestFormValues {
+  category: SupportCategory;
+  subject: string;
+  description: string;
+  priority: SupportPriority;
+  captchaToken?: string;
+}
+
+type SupportFormFields = keyof SupportRequestFormValues;
+type SupportFormProps = FormProps<SupportRequestFormValues>;
 
 export default function HelpCenterPage() {
-  const [form] = Form.useForm<SupportRequestValues>();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [form] = Form.useForm<SupportRequestFormValues>();
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [messageApi, contextHolder] = message.useMessage();
+  const [showCaptcha, setShowCaptcha] = useState<boolean>(false);
+  const [shouldResetCaptcha, setShouldResetCaptcha] = useState<boolean>(false);
+  const lastValidValues = useRef<Partial<SupportRequestFormValues>>({});
+  const isSubmitting = useRef<boolean>(false);
 
   const mutation = api.queries.submitSupportRequest.useMutation({
     onSuccess: () => {
       messageApi.success("Support request submitted successfully!");
       form.resetFields();
+      setShowCaptcha(false);
+      setShouldResetCaptcha(prev => !prev);
+      lastValidValues.current = {};
+      isSubmitting.current = false;
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       messageApi.error("Failed to submit support request. Please try again.");
       console.error("Form submission error:", error);
+      resetCaptcha();
+      isSubmitting.current = false;
     },
   });
 
-  const onFinish = (values: Omit<SupportRequestValues, "status">) => {
-    const supportData: SupportRequest = {
-      ...values,
-      status: "NEW",
-    };
+  const resetCaptcha = () => {
+    form.setFieldValue("captchaToken", undefined);
+    setShouldResetCaptcha(prev => !prev);
+  };
 
-    mutation.mutate(supportData);
+  const handleFormChange: Required<SupportFormProps>['onFieldsChange'] = (changedFields) => {
+    if (isSubmitting.current) return;
+
+    const changedFieldNames = changedFields
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => {
+        if (Array.isArray(field.name)) {
+          if (typeof field.name[0] === 'string') {
+            return field.name[0] as SupportFormFields;
+          }
+        } else if (typeof field.name === 'string') {
+          return field.name as SupportFormFields;
+        }
+        throw new Error('Unexpected field name type');
+      });
+
+    if (changedFieldNames.length === 0) return;
+
+    const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+    const currentValues = form.getFieldsValue(formFields) as Record<SupportFormFields, unknown>;
+
+    const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
+      const typedKey = key as SupportFormFields;
+      return value !== lastValidValues.current[typedKey] &&
+             value !== undefined &&
+             key !== 'captchaToken';
+    });
+
+    if (showCaptcha && 
+        form.getFieldValue("captchaToken") && 
+        hasRealChanges) {
+      resetCaptcha();
+      lastValidValues.current = currentValues as Partial<SupportRequestFormValues>;
+    }
+  };
+
+  const handleCaptchaChange = (token: string | null) => {
+    if (token) {
+      form.setFieldValue("captchaToken", token);
+      const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+      lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
+    }
+  };
+
+  const onFinish = (values: SupportRequestFormValues) => {
+    try {
+      isSubmitting.current = true;
+
+      if (!showCaptcha) {
+        setShowCaptcha(true);
+        const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+        lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
+        isSubmitting.current = false;
+        return;
+      }
+
+      const { captchaToken, ...formValues } = values;
+      const supportData: SupportRequest = {
+        ...formValues,
+        status: "NEW",
+        captchaToken
+      };
+
+      mutation.mutate(supportData);
+    } catch (error) {
+      isSubmitting.current = false;
+      console.error("Form submission error:", error);
+      resetCaptcha();
+    }
   };
 
   const supportCategories = [
@@ -166,6 +253,7 @@ export default function HelpCenterPage() {
                   form={form}
                   layout="vertical"
                   onFinish={onFinish}
+                  onFieldsChange={handleFormChange}
                   className="mt-8"
                 >
                   <Form.Item
@@ -221,6 +309,21 @@ export default function HelpCenterPage() {
                     <Select options={priorityLevels} />
                   </Form.Item>
 
+                  {showCaptcha && (
+                    <Form.Item
+                      name="captchaToken"
+                      rules={[
+                        { required: true, message: "Please complete the captcha" },
+                      ]}
+                    >
+                      <ReCAPTCHA
+                        key={String(shouldResetCaptcha)}
+                        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!}
+                        onChange={handleCaptchaChange}
+                      />
+                    </Form.Item>
+                  )}
+
                   <Form.Item>
                     <Button
                       type="primary"
@@ -230,9 +333,7 @@ export default function HelpCenterPage() {
                       className="w-full"
                       loading={mutation.isPending}
                     >
-                      {mutation.isPending
-                        ? "Submitting..."
-                        : "Submit Support Request"}
+                      {mutation.isPending ? "Submitting..." : (showCaptcha ? "Submit Request" : "Continue")}
                     </Button>
                   </Form.Item>
                 </Form>
