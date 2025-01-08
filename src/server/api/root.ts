@@ -4,7 +4,7 @@ import { adminRouter } from "./routers/user/admin";
 import { queryRouter } from "./routers/queries/query";
 import { adminQueryRouter } from "./routers/queries/admin-query-retriever";
 import { adminQueryMutationsRouter } from "./routers/queries/admin-query-mutations";
-import { profileRouter } from "./routers/queries/profile";
+import { profileRouter } from "./routers/user/profile";
 import { queryLookupRouter } from "./routers/queries/query-lookup";
 /**
  * This is the primary router for your server.
