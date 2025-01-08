@@ -36,7 +36,7 @@ export function AboutSection({ profile }: AboutSectionProps) {
             </span>
           }
         >
-          {profile.profile?.location || (
+          {profile.profile?.location ?? (
             <Text type="secondary">Location not set</Text>
           )}
         </Descriptions.Item>

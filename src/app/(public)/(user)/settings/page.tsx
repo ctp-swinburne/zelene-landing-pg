@@ -75,7 +75,7 @@ function BasicInfoForm({ initialData }: { initialData?: SettingsFormData }) {
 // Profile Form Component
 function ProfileForm({ initialData }: { initialData?: SettingsFormData }) {
   return (
-    <Form layout="vertical" initialValues={initialData?.profile || undefined}>
+    <Form layout="vertical" initialValues={initialData?.profile ?? undefined}>
       <Form.Item
         label="Bio"
         name={["bio"]}
@@ -187,7 +187,7 @@ function ProfileForm({ initialData }: { initialData?: SettingsFormData }) {
 // Social Links Form Component
 function SocialLinksForm({ initialData }: { initialData?: SettingsFormData }) {
   return (
-    <Form layout="vertical" initialValues={initialData?.social || undefined}>
+    <Form layout="vertical" initialValues={initialData?.social ?? undefined}>
       {[
         { name: "website", label: "Website" },
         { name: "twitter", label: "Twitter" },

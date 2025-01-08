@@ -23,7 +23,7 @@ export function ProfileHeader({ profile, isOwnProfile }: ProfileHeaderProps) {
         />
         <div className="mb-4">
           <Title level={2} className="!mb-1">
-            {profile.name || "Unnamed User"}
+            {profile.name ?? "Unnamed User"}
           </Title>
           <Text type="secondary" className="text-lg">
             @{profile.username}
