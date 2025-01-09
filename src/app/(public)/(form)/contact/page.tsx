@@ -28,12 +28,9 @@ import type { ContactQuery } from "~/schema/queries";
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
-import ReCAPTCHA from "react-google-recaptcha";
-
-const ReCAPTCHAComponent = dynamic(() => import("react-google-recaptcha"), {
+const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
   ssr: false,
-}) as typeof ReCAPTCHA;
-
+});
 
 type InquiryType = "PARTNERSHIP" | "SALES" | "MEDIA" | "GENERAL";
 type QueryStatus = "NEW" | "IN_PROGRESS" | "RESOLVED" | "CANCELLED";
@@ -67,8 +64,17 @@ export default function ContactPage() {
   const isSubmitting = useRef(false);
 
   const mutation = api.queries.submitContact.useMutation({
-    onSuccess: () => {
-      messageApi.success("Your message has been sent successfully!");
+    onSuccess: (data) => {
+      messageApi.success({
+        content: (
+          <div>
+            <div>Your message has been sent successfully!</div>
+            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
+            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+          </div>
+        ),
+        duration: 6,
+      });
       form.resetFields();
       setShowCaptcha(false);
       setShouldResetCaptcha(prev => !prev);
@@ -109,7 +115,6 @@ export default function ContactPage() {
     const currentValues: Pick<Required<ContactFormValues>, typeof formFields[number]> = 
       rawValues as Pick<Required<ContactFormValues>, typeof formFields[number]>;
     
-  
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
       return value !== lastValidValues.current[key as keyof ContactFormValues] &&
              value !== undefined &&
@@ -122,7 +127,6 @@ export default function ContactPage() {
     }
   };
   
-
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);

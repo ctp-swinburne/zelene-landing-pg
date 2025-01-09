@@ -14,7 +14,7 @@ import {
   Collapse,
   message,
 } from "antd";
-import type { FormProps, FormInstance } from 'antd';
+import type { FormProps } from 'antd';
 import {
   QuestionCircleOutlined,
   SearchOutlined,
@@ -56,15 +56,24 @@ export default function HelpCenterPage() {
   const isSubmitting = useRef<boolean>(false);
 
   const mutation = api.queries.submitSupportRequest.useMutation({
-    onSuccess: () => {
-      messageApi.success("Support request submitted successfully!");
+    onSuccess: (data) => {
+      messageApi.success({
+        content: (
+          <div>
+            <div>Support request submitted successfully!</div>
+            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
+            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+          </div>
+        ),
+        duration: 6,
+      });
       form.resetFields();
       setShowCaptcha(false);
       setShouldResetCaptcha(prev => !prev);
       lastValidValues.current = {};
       isSubmitting.current = false;
     },
-    onError: (error: unknown) => {
+    onError: (error) => {
       messageApi.error("Failed to submit support request. Please try again.");
       console.error("Form submission error:", error);
       resetCaptcha();

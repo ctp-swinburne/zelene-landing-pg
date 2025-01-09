@@ -94,6 +94,7 @@ const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
 
 export default function ReportIssuePage() {
   const [form] = Form.useForm<IssueFormData>();
+  const [messageApi, contextHolder] = message.useMessage();
   const [showCaptcha, setShowCaptcha] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const {
@@ -110,14 +111,23 @@ export default function ReportIssuePage() {
   } = useIssueStore();
 
   const submitMutation = api.queries.submitTechnicalIssue.useMutation({
-    onSuccess: () => {
-      message.success("Issue reported successfully");
+    onSuccess: (data) => {
+      messageApi.success({
+        content: (
+          <div>
+            <div>Issue reported successfully!</div>
+            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
+            <div className="text-xs mt-1 text-gray-500">Please save this ID for tracking your issue</div>
+          </div>
+        ),
+        duration: 6,
+      });
       form.resetFields();
       reset();
-      setCurrentStep(0); // Reset to the first step
+      setCurrentStep(0);
     },
     onError: (error) => {
-      message.error(error.message ?? "Failed to submit issue");
+      messageApi.error(error.message ?? "Failed to submit issue");
       setIsSubmitting(false);
     },
   });
@@ -351,6 +361,7 @@ export default function ReportIssuePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {contextHolder}
       <section className="w-full bg-gradient-to-b from-[#fff0f0] to-white px-4 py-16">
         <div className="container mx-auto max-w-6xl text-center">
           <Title level={1} className="text-gray-800">

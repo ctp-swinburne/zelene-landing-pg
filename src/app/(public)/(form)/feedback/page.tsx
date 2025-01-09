@@ -44,7 +44,6 @@ interface FeedbackFormValues {
   captchaToken?: string;
 }
 
-
 type FeedbackFormFields = keyof FeedbackFormValues;
 type FeedbackFormProps = FormProps<FeedbackFormValues>;
 
@@ -57,8 +56,17 @@ export default function FeedbackPage() {
   const isSubmitting = useRef(false);
 
   const mutation = api.queries.submitFeedback.useMutation({
-    onSuccess: () => {
-      messageApi.success("Thank you for your feedback!");
+    onSuccess: (data) => {
+      messageApi.success({
+        content: (
+          <div>
+            <div>Thank you for your feedback!</div>
+            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
+            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+          </div>
+        ),
+        duration: 6,
+      });
       form.resetFields();
       setShowCaptcha(false);
       setShouldResetCaptcha(prev => !prev);

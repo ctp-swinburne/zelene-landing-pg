@@ -12,9 +12,9 @@ import { uploadToSupabase } from "~/utils/supabase";
 export const queryRouter = createTRPCRouter({
   submitContact: publicProcedure
     .input(ContactQuerySchema)
-    .mutation(async ({ ctx, input }): Promise<{ success: true }> => {
+    .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        await ctx.db.contactQuery.create({
+        const result = await ctx.db.contactQuery.create({
           data: {
             name: input.name,
             organization: input.organization,
@@ -25,7 +25,7 @@ export const queryRouter = createTRPCRouter({
             status: "NEW",
           },
         });
-        return { success: true };
+        return { success: true, queryId: result.id };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -36,9 +36,9 @@ export const queryRouter = createTRPCRouter({
 
   submitFeedback: publicProcedure
     .input(FeedbackSchema)
-    .mutation(async ({ ctx, input }): Promise<{ success: true }> => {
+    .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        await ctx.db.feedback.create({
+        const result = await ctx.db.feedback.create({
           data: {
             category: input.category,
             satisfaction: input.satisfaction,
@@ -50,7 +50,7 @@ export const queryRouter = createTRPCRouter({
             status: "NEW",
           },
         });
-        return { success: true };
+        return { success: true, queryId: result.id };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -61,9 +61,9 @@ export const queryRouter = createTRPCRouter({
 
   submitSupportRequest: publicProcedure
     .input(SupportRequestSchema)
-    .mutation(async ({ ctx, input }): Promise<{ success: true }> => {
+    .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        await ctx.db.supportRequest.create({
+        const result = await ctx.db.supportRequest.create({
           data: {
             category: input.category,
             subject: input.subject,
@@ -72,7 +72,7 @@ export const queryRouter = createTRPCRouter({
             status: "NEW",
           },
         });
-        return { success: true };
+        return { success: true, queryId: result.id };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -83,11 +83,10 @@ export const queryRouter = createTRPCRouter({
 
   submitTechnicalIssue: publicProcedure
     .input(TechnicalIssueWithFilesSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
         const { attachments, ...issueData } = input;
 
-        // Handle file uploads if attachments exist
         const uploadedPaths = attachments
           ? await Promise.all(
               attachments.map((file) => {
@@ -101,15 +100,14 @@ export const queryRouter = createTRPCRouter({
             )
           : [];
 
-        // Create technical issue with uploaded file paths
-        await ctx.db.technicalIssue.create({
+        const result = await ctx.db.technicalIssue.create({
           data: {
             ...issueData,
             attachments: uploadedPaths,
           },
         });
 
-        return { success: true as const };
+        return { success: true, queryId: result.id };
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
