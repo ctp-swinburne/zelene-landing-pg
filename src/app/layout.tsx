@@ -6,7 +6,6 @@ import { SessionProvider } from "next-auth/react";
 
 import { TRPCReactProvider } from "~/trpc/react";
 import { AntMessageProvider } from "~/app/_components/AntMessageProvider";
-import { AntThemeProvider } from "~/app/_components/AntThemeProvider";
 
 export const metadata: Metadata = {
   title: "Zelene - Sustainable Solutions",
@@ -22,9 +21,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-white">
         <TRPCReactProvider>
           <SessionProvider>
-            <AntThemeProvider>
-              <AntMessageProvider>{children}</AntMessageProvider>
-            </AntThemeProvider>
+            <AntMessageProvider>{children}</AntMessageProvider>
           </SessionProvider>
         </TRPCReactProvider>
       </body>
