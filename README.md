@@ -45,7 +45,7 @@ Zelene is an integrated community platform for smart city lighting management th
 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/zelene-platform.git
+git clone https://github.com/ctpa-swinburne/zelene-platform.git
 cd zelene-platform
 ```
 
@@ -92,22 +92,6 @@ npx prisma migrate dev
 
 ```bash
 npm run dev
-```
-
-## Project Structure
-
-```
-zelene-platform/
-├── src/
-│   ├── app/                 # Next.js app router
-│   ├── components/         # React components
-│   ├── server/            # Backend logic and API routes
-│   │   ├── api/          # tRPC API definitions
-│   │   └── db/           # Database configuration
-│   ├── styles/           # Global styles
-│   └── types/            # TypeScript type definitions
-├── prisma/               # Database schema and migrations
-└── public/              # Static assets
 ```
 
 ## Contributing
