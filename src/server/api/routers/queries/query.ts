@@ -38,8 +38,8 @@ export const queryRouter = createTRPCRouter({
         });
 
         // Send email to user's registered email if they're logged in, otherwise use form email
-        const emailTo = user?.email || input.email;
-        const userName = user?.name || input.name;
+        const emailTo = user?.email ?? input.email;
+        const userName = user?.name ?? input.name;
 
         // Generate and send email
         const { html, text } = generateQueryConfirmationEmail(

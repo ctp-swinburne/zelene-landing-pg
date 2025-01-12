@@ -51,7 +51,7 @@ export const sendEmail = async ({ to, subject, text, html }: SendEmailParams) =>
     const info = await transporter.sendMail({
       from: {
         name: 'Zelene Platform',
-        address: process.env.SMTP_FROM || 'zeleneiotplatform@gmail.com'
+        address: process.env.SMTP_FROM ?? 'zeleneiotplatform@gmail.com'
       },
       to,
       subject,
