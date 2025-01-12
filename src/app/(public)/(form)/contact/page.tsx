@@ -28,6 +28,7 @@ import type { ContactQuery } from "~/schema/queries";
 const { Title, Paragraph, Text } = Typography;
 const { TextArea } = Input;
 
+// Dynamic import for ReCAPTCHA to ensure it only loads on client side
 const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), {
   ssr: false,
 });
@@ -46,6 +47,7 @@ interface ContactFormValues {
   captchaToken?: string;
 }
 
+// List of form fields for tracking changes and validation
 const formFields = [
   'name', 
   'organization', 
@@ -63,17 +65,23 @@ export default function ContactPage() {
   const lastValidValues = useRef<Partial<ContactFormValues>>({});
   const isSubmitting = useRef(false);
 
+  // Mutation hook for submitting the contact form
+  // The email will be sent by the server based on session status
   const mutation = api.queries.submitContact.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       messageApi.success({
         content: (
           <div>
             <div>Your message has been sent successfully!</div>
-            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
-            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+            <div className="text-sm mt-1">
+              A confirmation email has been sent to your provided email address.
+            </div>
+            <div className="text-xs mt-1 text-gray-500">
+              Please check your email for your query tracking details.
+            </div>
           </div>
         ),
-        duration: 6,
+        duration: 8,
       });
       form.resetFields();
       setShowCaptcha(false);
@@ -82,7 +90,10 @@ export default function ContactPage() {
       isSubmitting.current = false;
     },
     onError: (error) => {
-      messageApi.error("Failed to send message. Please try again.");
+      messageApi.error({
+        content: "Failed to send message. Please try again.",
+        duration: 5
+      });
       console.error("Form submission error:", error);
       resetCaptcha();
       isSubmitting.current = false;
@@ -94,6 +105,7 @@ export default function ContactPage() {
     setShouldResetCaptcha(prev => !prev);
   };
 
+  // Handle form field changes to reset captcha if needed
   const handleFormChange = (_: unknown, allFields: { name: NamePath; touched?: boolean; value?: unknown }[]) => {
     if (isSubmitting.current) return;
   
@@ -127,6 +139,7 @@ export default function ContactPage() {
     }
   };
   
+  // Handle captcha completion
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
@@ -137,6 +150,7 @@ export default function ContactPage() {
     }
   };
 
+  // Handle form submission
   const onFinish = (values: ContactFormValues) => {
     try {
       isSubmitting.current = true;
@@ -151,6 +165,7 @@ export default function ContactPage() {
         return;
       }
 
+      // Submit form data - server will handle email sending based on session
       const contactData: ContactQuery = { 
         ...values,
         status: "NEW" 
@@ -164,6 +179,7 @@ export default function ContactPage() {
     }
   };
 
+  // Inquiry type options
   const inquiryTypes = [
     { label: "Partnership Opportunities", value: "PARTNERSHIP" },
     { label: "Sales Inquiry", value: "SALES" },

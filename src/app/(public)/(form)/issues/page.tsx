@@ -52,46 +52,6 @@ interface IssueSubmitData extends IssueFormData {
   }>;
 }
 
-const issueTypes = Object.entries(IssueTypeSchema.enum).map(([value]) => ({
-  label: (() => {
-    switch (value) {
-      case "DEVICE":
-        return "Device - Hardware / Firmware issues";
-      case "PLATFORM":
-        return "Platform - Bugs discovered";
-      case "CONNECTIVITY":
-        return "Network - Connectivity problems";
-      case "SECURITY":
-        return "Security - Potential concerns / problems";
-      case "OTHER":
-        return "Other Technical Issue";
-      default:
-        return value;
-    }
-  })(),
-  value,
-}));
-
-const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
-  ([value]) => ({
-    label: (() => {
-      switch (value) {
-        case "CRITICAL":
-          return "Critical - Service Down/Security Breach";
-        case "HIGH":
-          return "High - Major Feature Unavailable";
-        case "MEDIUM":
-          return "Medium - Feature Degraded";
-        case "LOW":
-          return "Low - Minor Impact";
-        default:
-          return value;
-      }
-    })(),
-    value,
-  }),
-);
-
 export default function ReportIssuePage() {
   const [form] = Form.useForm<IssueFormData>();
   const [messageApi, contextHolder] = message.useMessage();
@@ -110,14 +70,20 @@ export default function ReportIssuePage() {
     ...formState
   } = useIssueStore();
 
+  // Mutation hook for submitting technical issue
+  // The server will send email to user's registered email address
   const submitMutation = api.queries.submitTechnicalIssue.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       messageApi.success({
         content: (
           <div>
             <div>Issue reported successfully!</div>
-            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
-            <div className="text-xs mt-1 text-gray-500">Please save this ID for tracking your issue</div>
+            <div className="text-sm mt-1">
+              A confirmation email has been sent to your registered email address.
+            </div>
+            <div className="text-xs mt-1 text-gray-500">
+              Please check your email for your issue tracking details.
+            </div>
           </div>
         ),
         duration: 6,
@@ -224,6 +190,49 @@ export default function ReportIssuePage() {
     setCurrentStep(currentStep - 1);
   };
 
+  // Issue types with detailed descriptions
+  const issueTypes = Object.entries(IssueTypeSchema.enum).map(([value]) => ({
+    label: (() => {
+      switch (value) {
+        case "DEVICE":
+          return "Device - Hardware / Firmware issues";
+        case "PLATFORM":
+          return "Platform - Bugs discovered";
+        case "CONNECTIVITY":
+          return "Network - Connectivity problems";
+        case "SECURITY":
+          return "Security - Potential concerns / problems";
+        case "OTHER":
+          return "Other Technical Issue";
+        default:
+          return value;
+      }
+    })(),
+    value,
+  }));
+
+  // Severity levels with descriptions
+  const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
+    ([value]) => ({
+      label: (() => {
+        switch (value) {
+          case "CRITICAL":
+            return "Critical - Service Down/Security Breach";
+          case "HIGH":
+            return "High - Major Feature Unavailable";
+          case "MEDIUM":
+            return "Medium - Feature Degraded";
+          case "LOW":
+            return "Low - Minor Impact";
+          default:
+            return value;
+        }
+      })(),
+      value,
+    }),
+  );
+
+  // Form steps configuration
   const steps = [
     {
       title: "Issue Details",

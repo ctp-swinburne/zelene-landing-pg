@@ -55,14 +55,20 @@ export default function FeedbackPage() {
   const lastValidValues = useRef<Partial<FeedbackFormValues>>({});
   const isSubmitting = useRef(false);
 
+  // Mutation hook for submitting feedback
+  // The server will send email to user's registered email address
   const mutation = api.queries.submitFeedback.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       messageApi.success({
         content: (
           <div>
             <div>Thank you for your feedback!</div>
-            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
-            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+            <div className="text-sm mt-1">
+              A confirmation email has been sent to your registered email address.
+            </div>
+            <div className="text-xs mt-1 text-gray-500">
+              Please check your email for your tracking details.
+            </div>
           </div>
         ),
         duration: 6,
@@ -168,6 +174,7 @@ export default function FeedbackPage() {
         return;
       }
 
+      // Submit feedback data - email will be sent to user's registered email
       const { captchaToken, ...formValues } = values;
       const feedbackData: Feedback = {
         ...formValues,
