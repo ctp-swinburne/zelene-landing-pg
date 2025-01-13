@@ -55,14 +55,20 @@ export default function HelpCenterPage() {
   const lastValidValues = useRef<Partial<SupportRequestFormValues>>({});
   const isSubmitting = useRef<boolean>(false);
 
+  // Mutation hook for submitting support request
+  // The server will send email to user's registered email address
   const mutation = api.queries.submitSupportRequest.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       messageApi.success({
         content: (
           <div>
             <div>Support request submitted successfully!</div>
-            <div className="text-sm mt-1">Query ID: {data.queryId}</div>
-            <div className="text-xs mt-1 text-gray-500">Please save this ID for future reference</div>
+            <div className="text-sm mt-1">
+              A confirmation email has been sent to your registered email address.
+            </div>
+            <div className="text-xs mt-1 text-gray-500">
+              Please check your email for your support request tracking details.
+            </div>
           </div>
         ),
         duration: 6,
@@ -142,6 +148,7 @@ export default function HelpCenterPage() {
         return;
       }
 
+      // Submit support request - email will be sent to user's registered email
       const { captchaToken, ...formValues } = values;
       const supportData: SupportRequest = {
         ...formValues,
