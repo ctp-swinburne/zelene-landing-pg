@@ -20,6 +20,7 @@ import {
   SearchOutlined,
   BookOutlined,
   MessageOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
@@ -37,6 +38,7 @@ const ReCAPTCHA = dynamic(() => import("react-google-recaptcha"), { ssr: false }
 
 interface SupportRequestFormValues {
   category: SupportCategory;
+  email: string;
   subject: string;
   description: string;
   priority: SupportPriority;
@@ -55,8 +57,6 @@ export default function HelpCenterPage() {
   const lastValidValues = useRef<Partial<SupportRequestFormValues>>({});
   const isSubmitting = useRef<boolean>(false);
 
-  // Mutation hook for submitting support request
-  // The server will send email to user's registered email address
   const mutation = api.queries.submitSupportRequest.useMutation({
     onSuccess: () => {
       messageApi.success({
@@ -64,7 +64,7 @@ export default function HelpCenterPage() {
           <div>
             <div>Support request submitted successfully!</div>
             <div className="text-sm mt-1">
-              A confirmation email has been sent to your registered email address.
+              A confirmation email has been sent to your provided email address.
             </div>
             <div className="text-xs mt-1 text-gray-500">
               Please check your email for your support request tracking details.
@@ -110,7 +110,7 @@ export default function HelpCenterPage() {
 
     if (changedFieldNames.length === 0) return;
 
-    const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+    const formFields: SupportFormFields[] = ['category', 'email', 'subject', 'description', 'priority'];
     const currentValues = form.getFieldsValue(formFields) as Record<SupportFormFields, unknown>;
 
     const hasRealChanges = Object.entries(currentValues).some(([key, value]) => {
@@ -131,7 +131,7 @@ export default function HelpCenterPage() {
   const handleCaptchaChange = (token: string | null) => {
     if (token) {
       form.setFieldValue("captchaToken", token);
-      const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+      const formFields: SupportFormFields[] = ['category', 'email', 'subject', 'description', 'priority'];
       lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
     }
   };
@@ -142,13 +142,12 @@ export default function HelpCenterPage() {
 
       if (!showCaptcha) {
         setShowCaptcha(true);
-        const formFields: SupportFormFields[] = ['category', 'subject', 'description', 'priority'];
+        const formFields: SupportFormFields[] = ['category', 'email', 'subject', 'description', 'priority'];
         lastValidValues.current = form.getFieldsValue(formFields) as Partial<SupportRequestFormValues>;
         isSubmitting.current = false;
         return;
       }
 
-      // Submit support request - email will be sent to user's registered email
       const { captchaToken, ...formValues } = values;
       const supportData: SupportRequest = {
         ...formValues,
@@ -182,10 +181,7 @@ export default function HelpCenterPage() {
       title: "Getting Started",
       items: [
         { q: "How do I access the platform?", a: "Access is provided..." },
-        {
-          q: "What are the system requirements?",
-          a: "The platform requires...",
-        },
+        { q: "What are the system requirements?", a: "The platform requires..." },
       ],
     },
     {
@@ -280,6 +276,25 @@ export default function HelpCenterPage() {
                     ]}
                   >
                     <Select options={supportCategories} />
+                  </Form.Item>
+
+                  <Form.Item
+                    name="email"
+                    label={
+                      <span>
+                        Email Address <MailOutlined className="text-blue-400" />
+                      </span>
+                    }
+                    rules={[
+                      { required: true, message: "Please enter your email" },
+                      { type: "email", message: "Please enter a valid email" }
+                    ]}
+                  >
+                    <Input 
+                      placeholder="Enter your email address" 
+                      type="email"
+                      className="mb-4"
+                    />
                   </Form.Item>
 
                   <Form.Item

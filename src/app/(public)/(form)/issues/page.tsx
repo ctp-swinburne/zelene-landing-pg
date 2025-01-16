@@ -15,12 +15,12 @@ import {
   Steps,
   message,
 } from "antd";
-import { UploadOutlined, BugOutlined } from "@ant-design/icons";
+import { UploadOutlined, BugOutlined, MailOutlined } from "@ant-design/icons";
 import { api } from "~/trpc/react";
 import { useIssueStore } from "~/store/issueForm";
 import { IssueTypeSchema, IssueSeveritySchema } from "~/schema/queries";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const { Title, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -40,6 +40,7 @@ interface IssueFormData {
   description: string;
   stepsToReproduce: string;
   expectedBehavior: string;
+  email: string;
   captchaToken?: string;
 }
 
@@ -51,6 +52,46 @@ interface IssueSubmitData extends IssueFormData {
     base64Data: string;
   }>;
 }
+
+const issueTypes = Object.entries(IssueTypeSchema.enum).map(([value]) => ({
+  label: (() => {
+    switch (value) {
+      case "DEVICE":
+        return "Device - Hardware / Firmware issues";
+      case "PLATFORM":
+        return "Platform - Bugs discovered";
+      case "CONNECTIVITY":
+        return "Network - Connectivity problems";
+      case "SECURITY":
+        return "Security - Potential concerns / problems";
+      case "OTHER":
+        return "Other Technical Issue";
+      default:
+        return value;
+    }
+  })(),
+  value,
+}));
+
+const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
+  ([value]) => ({
+    label: (() => {
+      switch (value) {
+        case "CRITICAL":
+          return "Critical - Service Down/Security Breach";
+        case "HIGH":
+          return "High - Major Feature Unavailable";
+        case "MEDIUM":
+          return "Medium - Feature Degraded";
+        case "LOW":
+          return "Low - Minor Impact";
+        default:
+          return value;
+      }
+    })(),
+    value,
+  }),
+);
 
 export default function ReportIssuePage() {
   const [form] = Form.useForm<IssueFormData>();
@@ -70,19 +111,25 @@ export default function ReportIssuePage() {
     ...formState
   } = useIssueStore();
 
-  // Mutation hook for submitting technical issue
-  // The server will send email to user's registered email address
+  // Effect to sync form data with store
+  useEffect(() => {
+    const currentFormData = form.getFieldsValue();
+    if (currentFormData.email) {
+      setFormData(currentStep, { email: currentFormData.email });
+    }
+  }, [form, currentStep, setFormData]);
+
   const submitMutation = api.queries.submitTechnicalIssue.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
       messageApi.success({
         content: (
           <div>
-            <div>Issue reported successfully!</div>
+            <div>Support request submitted successfully!</div>
             <div className="text-sm mt-1">
-              A confirmation email has been sent to your registered email address.
+              A Report Technical Issue email has been sent to your provided email address.
             </div>
             <div className="text-xs mt-1 text-gray-500">
-              Please check your email for your issue tracking details.
+              Please check your email for your support request tracking details.
             </div>
           </div>
         ),
@@ -91,6 +138,8 @@ export default function ReportIssuePage() {
       form.resetFields();
       reset();
       setCurrentStep(0);
+      setShowCaptcha(false);
+      setCaptchaToken(null);
     },
     onError: (error) => {
       messageApi.error(error.message ?? "Failed to submit issue");
@@ -126,6 +175,16 @@ export default function ReportIssuePage() {
     try {
       setIsSubmitting(true);
 
+      // Validate form data first
+      const formData = await form.validateFields();
+      
+      // Validate email format
+      if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        messageApi.error('Please enter a valid email address');
+        setIsSubmitting(false);
+        return;
+      }
+
       // Convert files to base64
       const filePromises = fileList.map(async (file) => {
         if (!file.originFileObj) return null;
@@ -160,9 +219,11 @@ export default function ReportIssuePage() {
           attachment !== null,
       );
 
-      const formData = getFormData() as IssueFormData;
+      const issueData = getFormData() as IssueFormData;
+      
       const submitData: IssueSubmitData = {
-        ...formData,
+        ...issueData,
+        email: formData.email, // Ensure email is explicitly set from form data
         attachments: attachments.length > 0 ? attachments : undefined,
         captchaToken: captchaToken ?? undefined,
       };
@@ -170,6 +231,9 @@ export default function ReportIssuePage() {
       await submitMutation.mutateAsync(submitData);
     } catch (error) {
       console.error("Failed to submit issue:", error);
+      if (error instanceof Error) {
+        messageApi.error(error.message);
+      }
       setIsSubmitting(false);
     }
   };
@@ -190,72 +254,24 @@ export default function ReportIssuePage() {
     setCurrentStep(currentStep - 1);
   };
 
-  // Issue types with detailed descriptions
-  const issueTypes = Object.entries(IssueTypeSchema.enum).map(([value]) => ({
-    label: (() => {
-      switch (value) {
-        case "DEVICE":
-          return "Device - Hardware / Firmware issues";
-        case "PLATFORM":
-          return "Platform - Bugs discovered";
-        case "CONNECTIVITY":
-          return "Network - Connectivity problems";
-        case "SECURITY":
-          return "Security - Potential concerns / problems";
-        case "OTHER":
-          return "Other Technical Issue";
-        default:
-          return value;
-      }
-    })(),
-    value,
-  }));
-
-  // Severity levels with descriptions
-  const severityLevels = Object.entries(IssueSeveritySchema.enum).map(
-    ([value]) => ({
-      label: (() => {
-        switch (value) {
-          case "CRITICAL":
-            return "Critical - Service Down/Security Breach";
-          case "HIGH":
-            return "High - Major Feature Unavailable";
-          case "MEDIUM":
-            return "Medium - Feature Degraded";
-          case "LOW":
-            return "Low - Minor Impact";
-          default:
-            return value;
-        }
-      })(),
-      value,
-    }),
-  );
-
-  // Form steps configuration
   const steps = [
     {
       title: "Issue Details",
       content: (
         <>
-          <Row gutter={16}>
-            <Col xs={24} md={12}>
-              <Form.Item name="deviceId" label="Device ID (if applicable)">
-                <Input placeholder="Enter device ID" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item
-                name="issueType"
-                label="Issue Type"
-                rules={[
-                  { required: true, message: "Please select issue type" },
-                ]}
-              >
-                <Select options={issueTypes} />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item name="deviceId" label="Device ID (if applicable)">
+            <Input placeholder="Enter device ID" />
+          </Form.Item>
+
+          <Form.Item
+            name="issueType"
+            label="Issue Type"
+            rules={[
+              { required: true, message: "Please select issue type" },
+            ]}
+          >
+            <Select options={issueTypes} />
+          </Form.Item>
 
           <Form.Item
             name="severity"
@@ -335,7 +351,40 @@ export default function ReportIssuePage() {
       title: "Additional Info",
       content: (
         <>
-          <Form.Item label="Attachments">
+          <Alert
+            message="Contact Information"
+            description="Please provide your email address so we can notify you of any updates regarding your issue."
+            type="info"
+            showIcon
+            className="mb-6"
+          />
+          
+          <Form.Item
+            name="email"
+            label={
+              <span>
+                Email Address <MailOutlined className="text-blue-400" />
+              </span>
+            }
+            rules={[
+              { required: true, message: "Please enter your email" },
+              { type: "email", message: "Please enter a valid email" },
+              {
+                pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: "Please enter a valid email format"
+              }
+            ]}
+          >
+            <Input 
+              placeholder="Enter your email address" 
+              className="mb-6"
+              onChange={(e) => {
+                setFormData(currentStep, { email: e.target.value });
+              }}
+            />
+          </Form.Item>
+
+          <Form.Item label="Attachments" className="mt-4">
             <Upload
               multiple
               fileList={fileList}
@@ -394,7 +443,11 @@ export default function ReportIssuePage() {
         <Card>
           <Steps current={currentStep} items={steps} className="mb-8" />
 
-          <Form form={form} layout="vertical" initialValues={formState}>
+          <Form 
+            form={form} 
+            layout="vertical" 
+            initialValues={{ ...formState }}
+          >
             <div>{steps[currentStep]?.content}</div>
 
             <div className="mt-8 flex justify-between">

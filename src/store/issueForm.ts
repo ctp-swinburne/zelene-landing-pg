@@ -11,6 +11,7 @@ interface IssueState {
   description?: string;
   stepsToReproduce?: string;
   expectedBehavior?: string;
+  email: string;
 
   // UI State
   currentStep: number;
@@ -28,12 +29,15 @@ interface IssueActions {
 }
 
 const initialState: IssueState = {
+  // Initialize required fields
+  email: "", 
   currentStep: 0,
   fileList: [],
   isSubmitting: false,
 };
 
 export const useIssueStore = create<IssueState & IssueActions>((set, get) => ({
+  // Initial state
   ...initialState,
 
   setFormData: (step, data) => {
@@ -61,6 +65,7 @@ export const useIssueStore = create<IssueState & IssueActions>((set, get) => ({
       description: state.description,
       stepsToReproduce: state.stepsToReproduce,
       expectedBehavior: state.expectedBehavior,
+      email: state.email, 
     };
   },
 }));
