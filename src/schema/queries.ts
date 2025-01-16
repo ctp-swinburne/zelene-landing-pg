@@ -70,6 +70,7 @@ export const FeedbackSchema = z.object({
   comments: z.string().optional(),
   status: QueryStatusSchema.optional().default("NEW"),
   captchaToken: z.string().optional(),
+  email: z.string().email("Invalid email address"), // Added email field
 });
 
 // Support request schema
@@ -78,6 +79,7 @@ export const SupportRequestSchema = z.object({
   subject: z.string().min(1, "Subject is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   priority: SupportPrioritySchema,
+  email: z.string().email("Invalid email address"),  
   status: QueryStatusSchema.optional().default("NEW"),
   captchaToken: z.string().optional(),
 });
@@ -85,18 +87,17 @@ export const SupportRequestSchema = z.object({
 // Technical issue schema
 export const TechnicalIssueSchema = z.object({
   deviceId: z.string().optional(),
+  email: z.string().email("Invalid email address"), // Ensure this line is present
   issueType: IssueTypeSchema,
   severity: IssueSeveritySchema,
   title: z.string().min(1, "Title is required"),
   description: z.string().min(10, "Description must be at least 10 characters"),
   stepsToReproduce: z.string().min(10, "Steps must be at least 10 characters"),
-  expectedBehavior: z
-    .string()
-    .min(10, "Expected behavior must be at least 10 characters"),
+  expectedBehavior: z.string().min(10, "Expected behavior must be at least 10 characters"),
   attachments: z.array(z.string()).optional(),
   status: QueryStatusSchema.optional().default("NEW"),
-  
 });
+
 
 export const FileUploadSchema = z.object({
   filename: z.string(),
@@ -108,6 +109,7 @@ export const FileUploadSchema = z.object({
 export const TechnicalIssueWithFilesSchema = TechnicalIssueSchema.extend({
   attachments: z.array(FileUploadSchema).optional(),
 });
+
 // Type exports
 export type QueryStatus = z.infer<typeof QueryStatusSchema>;
 export type InquiryType = z.infer<typeof InquiryTypeSchema>;

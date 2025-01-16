@@ -22,6 +22,7 @@ import {
   HeartOutlined,
   BulbOutlined,
   StarOutlined,
+  MailOutlined,
 } from "@ant-design/icons";
 import dynamic from "next/dynamic";
 import { api } from "~/trpc/react";
@@ -41,6 +42,7 @@ interface FeedbackFormValues {
   improvements: string;
   recommendation: boolean;
   comments?: string;
+  email: string;
   captchaToken?: string;
 }
 
@@ -55,23 +57,21 @@ export default function FeedbackPage() {
   const lastValidValues = useRef<Partial<FeedbackFormValues>>({});
   const isSubmitting = useRef(false);
 
-  // Mutation hook for submitting feedback
-  // The server will send email to user's registered email address
   const mutation = api.queries.submitFeedback.useMutation({
     onSuccess: () => {
       messageApi.success({
         content: (
           <div>
-            <div>Thank you for your feedback!</div>
+            <div>Your feedback has been submitted successfully!</div>
             <div className="text-sm mt-1">
-              A confirmation email has been sent to your registered email address.
+              A confirmation email has been sent to your provided email address.
             </div>
             <div className="text-xs mt-1 text-gray-500">
-              Please check your email for your tracking details.
+              Please check your email for your feedback tracking details.
             </div>
           </div>
         ),
-        duration: 6,
+        duration: 8,
       });
       form.resetFields();
       setShowCaptcha(false);
@@ -96,29 +96,29 @@ export default function FeedbackPage() {
     if (isSubmitting.current) return;
 
     const changedFieldNames = changedFields
-    .filter(field => field.touched && field.value !== undefined)
-    .map(field => {
-      if (Array.isArray(field.name)) {
-        if (typeof field.name[0] === 'string') {
-          return field.name[0] as FeedbackFormFields;
+      .filter(field => field.touched && field.value !== undefined)
+      .map(field => {
+        if (Array.isArray(field.name)) {
+          if (typeof field.name[0] === 'string') {
+            return field.name[0] as FeedbackFormFields;
+          }
+        } else if (typeof field.name === 'string') {
+          return field.name as FeedbackFormFields;
         }
-      } else if (typeof field.name === 'string') {
-        return field.name as FeedbackFormFields;
-      }
-      throw new Error('Unexpected field name type');
-    });
-  
+        throw new Error('Unexpected field name type');
+      });
 
     if (changedFieldNames.length === 0) return;
 
     const formFields: FeedbackFormFields[] = [
-      'category', 
-      'satisfaction', 
-      'usability', 
+      'category',
+      'satisfaction',
+      'usability',
       'features',
-      'improvements', 
-      'recommendation', 
-      'comments'
+      'improvements',
+      'recommendation',
+      'comments',
+      'email',
     ];
 
     const currentValues = form.getFieldsValue(formFields) as Record<FeedbackFormFields, unknown>;
@@ -126,13 +126,13 @@ export default function FeedbackPage() {
     const hasRealChanges = Object.entries(currentValues as Record<string, unknown>).some(([key, value]) => {
       const typedKey = key as FeedbackFormFields;
       return value !== lastValidValues.current[typedKey] &&
-             value !== undefined &&
-             key !== 'captchaToken';
+        value !== undefined &&
+        key !== 'captchaToken';
     });
 
-    if (showCaptcha && 
-        form.getFieldValue("captchaToken") && 
-        hasRealChanges) {
+    if (showCaptcha &&
+      form.getFieldValue("captchaToken") &&
+      hasRealChanges) {
       resetCaptcha();
       lastValidValues.current = currentValues as Partial<FeedbackFormValues>;
     }
@@ -142,13 +142,14 @@ export default function FeedbackPage() {
     if (token) {
       form.setFieldValue("captchaToken", token);
       const formFields: FeedbackFormFields[] = [
-        'category', 
-        'satisfaction', 
-        'usability', 
+        'category',
+        'satisfaction',
+        'usability',
         'features',
-        'improvements', 
-        'recommendation', 
-        'comments'
+        'improvements',
+        'recommendation',
+        'comments',
+        'email',
       ];
       lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
     }
@@ -161,20 +162,20 @@ export default function FeedbackPage() {
       if (!showCaptcha) {
         setShowCaptcha(true);
         const formFields: FeedbackFormFields[] = [
-          'category', 
-          'satisfaction', 
-          'usability', 
+          'category',
+          'satisfaction',
+          'usability',
           'features',
-          'improvements', 
-          'recommendation', 
-          'comments'
+          'improvements',
+          'recommendation',
+          'comments',
+          'email',
         ];
         lastValidValues.current = form.getFieldsValue(formFields) as Partial<FeedbackFormValues>;
         isSubmitting.current = false;
         return;
       }
 
-      // Submit feedback data - email will be sent to user's registered email
       const { captchaToken, ...formValues } = values;
       const feedbackData: Feedback = {
         ...formValues,
@@ -233,6 +234,21 @@ export default function FeedbackPage() {
                 onFieldsChange={handleFormChange}
                 className="mt-4"
               >
+                <Form.Item
+                  name="email"
+                  label={
+                    <span>
+                      Email Address <MailOutlined className="text-blue-400" />
+                    </span>
+                  }
+                  rules={[
+                    { required: true, message: "Please enter your email" },
+                    { type: "email", message: "Please enter a valid email" }
+                  ]}
+                >
+                  <Input placeholder="Enter your email address" />
+                </Form.Item>
+
                 <Form.Item
                   name="category"
                   label="What area would you like to give feedback on?"

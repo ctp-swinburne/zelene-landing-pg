@@ -156,9 +156,11 @@ model Feedback {
     improvements   String           @db.Text
     recommendation Boolean
     comments       String?          @db.Text
+    email          String
     status         QueryStatus      @default(NEW)
     response       String?
 }
+
 
 // Support request model
 model SupportRequest {
@@ -167,6 +169,7 @@ model SupportRequest {
     updatedAt   DateTime        @updatedAt
     category    SupportCategory
     subject     String
+    email       String
     description String          @db.Text
     priority    SupportPriority
     status      QueryStatus     @default(NEW)
@@ -185,7 +188,8 @@ model TechnicalIssue {
     description      String        @db.Text
     stepsToReproduce String        @db.Text
     expectedBehavior String        @db.Text
-    attachments      String[] // URLs to stored attachments
+    email            String
+    attachments      String[]
     status           QueryStatus   @default(NEW)
     response         String?
 }

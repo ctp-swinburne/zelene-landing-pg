@@ -1,5 +1,6 @@
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { sendEmail, generateQueryConfirmationEmail } from "~/utils/email";
 import {
   ContactQuerySchema,
   FeedbackSchema,
@@ -7,24 +8,12 @@ import {
   TechnicalIssueWithFilesSchema,
 } from "~/schema/queries";
 import { uploadToSupabase } from "~/utils/supabase";
-import { sendEmail, generateQueryConfirmationEmail } from "~/utils/email";
 
 export const queryRouter = createTRPCRouter({
   submitContact: publicProcedure
     .input(ContactQuerySchema)
     .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        // Get the logged-in user's email
-        const user = await ctx.db.user.findFirst({
-          where: {
-            id: ctx.session?.user?.id,
-          },
-          select: {
-            email: true,
-            name: true,
-          },
-        });
-
         const result = await ctx.db.contactQuery.create({
           data: {
             name: input.name,
@@ -37,19 +26,15 @@ export const queryRouter = createTRPCRouter({
           },
         });
 
-        // Send email to user's registered email if they're logged in, otherwise use form email
-        const emailTo = user?.email ?? input.email;
-        const userName = user?.name ?? input.name;
-
-        // Generate and send email
+        // Send confirmation email
         const { html, text } = generateQueryConfirmationEmail(
           result.id,
           'Contact Query',
-          userName
+          input.name
         );
 
         await sendEmail({
-          to: emailTo,
+          to: input.email,
           subject: 'Contact Query Confirmation',
           html,
           text,
@@ -57,6 +42,7 @@ export const queryRouter = createTRPCRouter({
 
         return { success: true, queryId: result.id };
       } catch (error) {
+        console.error('Error in submitContact:', error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to submit contact form",
@@ -68,24 +54,6 @@ export const queryRouter = createTRPCRouter({
     .input(FeedbackSchema)
     .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        // Get the logged-in user's email
-        const user = await ctx.db.user.findFirst({
-          where: {
-            id: ctx.session?.user?.id,
-          },
-          select: {
-            email: true,
-            name: true,
-          },
-        });
-
-        if (!user?.email) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "User must be logged in",
-          });
-        }
-
         const result = await ctx.db.feedback.create({
           data: {
             category: input.category,
@@ -96,18 +64,19 @@ export const queryRouter = createTRPCRouter({
             recommendation: input.recommendation,
             comments: input.comments,
             status: "NEW",
+            email: input.email,
           },
         });
 
-        // Send email notification
+        // Send confirmation email
         const { html, text } = generateQueryConfirmationEmail(
           result.id,
           'Feedback',
-          user.name ?? 'User'
+          'Valued User' // Since feedback form might not have name field
         );
 
         await sendEmail({
-          to: user.email,
+          to: input.email,
           subject: 'Feedback Submission Confirmation',
           html,
           text,
@@ -115,6 +84,7 @@ export const queryRouter = createTRPCRouter({
 
         return { success: true, queryId: result.id };
       } catch (error) {
+        console.error('Error in submitFeedback:', error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to submit feedback",
@@ -126,43 +96,26 @@ export const queryRouter = createTRPCRouter({
     .input(SupportRequestSchema)
     .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        // Get the logged-in user's email
-        const user = await ctx.db.user.findFirst({
-          where: {
-            id: ctx.session?.user?.id,
-          },
-          select: {
-            email: true,
-            name: true,
-          },
-        });
-
-        if (!user?.email) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "User must be logged in",
-          });
-        }
-
         const result = await ctx.db.supportRequest.create({
           data: {
             category: input.category,
             subject: input.subject,
             description: input.description,
             priority: input.priority,
+            email: input.email,
             status: "NEW",
           },
         });
 
-        // Send email notification
+        // Send confirmation email
         const { html, text } = generateQueryConfirmationEmail(
           result.id,
           'Support Request',
-          user.name ?? 'User'
+          'User' // You might want to add name field to support request form
         );
 
         await sendEmail({
-          to: user.email,
+          to: input.email,
           subject: 'Support Request Confirmation',
           html,
           text,
@@ -170,6 +123,7 @@ export const queryRouter = createTRPCRouter({
 
         return { success: true, queryId: result.id };
       } catch (error) {
+        console.error('Error in submitSupportRequest:', error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to submit support request",
@@ -181,24 +135,6 @@ export const queryRouter = createTRPCRouter({
     .input(TechnicalIssueWithFilesSchema)
     .mutation(async ({ ctx, input }): Promise<{ success: true; queryId: string }> => {
       try {
-        // Get the logged-in user's email
-        const user = await ctx.db.user.findFirst({
-          where: {
-            id: ctx.session?.user?.id,
-          },
-          select: {
-            email: true,
-            name: true,
-          },
-        });
-
-        if (!user?.email) {
-          throw new TRPCError({
-            code: "UNAUTHORIZED",
-            message: "User must be logged in",
-          });
-        }
-
         const { attachments, ...issueData } = input;
 
         const uploadedPaths = attachments
@@ -218,18 +154,20 @@ export const queryRouter = createTRPCRouter({
           data: {
             ...issueData,
             attachments: uploadedPaths,
+            email: input.email,
+            status: "NEW",
           },
         });
 
-        // Send email notification
+        // Send confirmation email
         const { html, text } = generateQueryConfirmationEmail(
           result.id,
           'Technical Issue',
-          user.name ?? 'User'
+          'User' // You might want to add name field to technical issue form
         );
 
         await sendEmail({
-          to: user.email,
+          to: input.email,
           subject: 'Technical Issue Report Confirmation',
           html,
           text,
@@ -237,6 +175,7 @@ export const queryRouter = createTRPCRouter({
 
         return { success: true, queryId: result.id };
       } catch (error) {
+        console.error('Error in submitTechnicalIssue:', error);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
           message: "Failed to submit technical issue",
