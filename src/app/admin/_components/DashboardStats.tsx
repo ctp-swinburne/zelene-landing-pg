@@ -26,7 +26,7 @@ export default function DashboardStats() {
     const fetchStats = async () => {
       try {
         const response = await fetch('/api/admin/user-stats');
-        const data = await response.json();
+        const data = (await response.json()) as DashboardStats;
         setStats(data);
       } catch (error) {
         console.error('Failed to fetch stats:', error);
@@ -52,26 +52,26 @@ export default function DashboardStats() {
   const dashboardStats = [
     {
       title: "New Members This Week",
-      value: stats?.activeThisWeek || 0,
-      trend: calculateGrowth(stats?.activeThisWeek || 0, stats?.activeLastWeek || 0),
+      value: stats?.activeThisWeek ?? 0,
+      trend: calculateGrowth(stats?.activeThisWeek ?? 0, stats?.activeLastWeek ?? 0),
       description: stats ? `From ${new Date(stats.startOfThisWeek).toLocaleDateString()}` : ''
     },
     {
       title: "Open Queries",
-      value: stats?.openQueriesThisWeek || 0,
-      trend: calculateGrowth(stats?.openQueriesThisWeek || 0, stats?.openQueriesLastWeek || 0),
+      value: stats?.openQueriesThisWeek ?? 0,
+      trend: calculateGrowth(stats?.openQueriesThisWeek ?? 0, stats?.openQueriesLastWeek ?? 0),
       description: "Including all types of queries"
     },
     {
       title: "New Posts",
-      value: stats?.postsThisWeek || 0,
-      trend: calculateGrowth(stats?.postsThisWeek || 0, stats?.postsLastWeek || 0),
+      value: stats?.postsThisWeek ?? 0,
+      trend: calculateGrowth(stats?.postsThisWeek ?? 0, stats?.postsLastWeek ?? 0),
       description: "Posts published this week"
     },
     {
       title: "Technical Issues",
-      value: stats?.alertsThisWeek || 0,
-      trend: calculateGrowth(stats?.alertsThisWeek || 0, stats?.alertsLastWeek || 0),
+      value: stats?.alertsThisWeek ?? 0,
+      trend: calculateGrowth(stats?.alertsThisWeek ?? 0, stats?.alertsLastWeek ?? 0),
       description: "Unresolved device issues"
     },
   ];
