@@ -58,21 +58,6 @@ const AdminPage: NextPage = () => {
     <div className="space-y-8">
       <DashboardStats />
 
-      {/* Notifications */}
-      <Row gutter={[16, 16]}>
-        <Col span={16}>
-          <Space direction="vertical" className="w-full">
-            {notifications.map((notif, idx) => (
-              <Alert
-                key={idx}
-                message={notif.message}
-                type={notif.type}
-                showIcon
-              />
-            ))}
-          </Space>
-        </Col>
-      </Row>
 
       {/* Support Items */}
       <div>
