@@ -1,3 +1,4 @@
+// server/api/root.ts
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 import { authRouter } from "./routers/user/auth";
 import { adminRouter } from "./routers/user/admin";
