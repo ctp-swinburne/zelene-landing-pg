@@ -113,8 +113,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Special thanks to Viettel 5G & IoT Innovation Lab for device support
-- City infrastructure management teams for their valuable feedback
-- The open-source community for their continuous contributions
 
 ## Contact
 
