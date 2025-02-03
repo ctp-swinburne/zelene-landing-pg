@@ -96,12 +96,16 @@ export default function DashboardStats() {
             <div className="mt-2 text-sm">
               {stat.trend > 0 ? (
                 <ArrowUpOutlined style={{ color: "#3f8600" }} />
-              ) : (
+              ) : stat.trend < 0 ? (
                 <ArrowDownOutlined style={{ color: "#cf1322" }} />
+              ) : (
+                <span style={{ color: "#d4b106" }}>0%</span>
               )}
-              <span style={{ color: stat.trend > 0 ? "#3f8600" : "#cf1322" }}>
-                {Math.abs(stat.trend)}%
-              </span>
+              {stat.trend !== 0 && (
+                <span style={{ color: stat.trend > 0 ? "#3f8600" : "#cf1322" }}>
+                  {Math.abs(stat.trend)}%
+                </span>
+              )}
               <span className="text-gray-500 text-xs ml-1">vs last week</span>
             </div>
           </Card>
