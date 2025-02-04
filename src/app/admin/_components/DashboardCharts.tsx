@@ -12,7 +12,8 @@ import {
   CartesianGrid, 
   Tooltip, 
   Legend, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  TooltipProps 
 } from 'recharts';
 import { api } from "~/trpc/react";
 import { format } from 'date-fns';
@@ -28,40 +29,48 @@ interface ChartDataPoint {
   'Active Issues': number;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white p-4 border rounded shadow">
-        <p className="font-medium">{label}</p>
-        {payload.map((pld: any) => (
-          <div key={pld.name} className="flex justify-between gap-4">
-            <span style={{ color: pld.color }}>{pld.name}:</span>
-            <span className="font-medium">{pld.value.toLocaleString()}</span>
-          </div>
-        ))}
-      </div>
-    );
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    name: string;
+    value: number;
+    color: string;
+  }>;
+  label?: string;
+}
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (!active || !payload?.length) {
+    return null;
   }
 
-  return null;
+  return (
+    <div className="bg-white p-4 border rounded shadow">
+      <p className="font-medium">{label}</p>
+      {payload.map((pld) => (
+        <div key={pld.name} className="flex justify-between gap-4">
+          <span style={{ color: pld.color }}>{pld.name}:</span>
+          <span className="font-medium">{pld.value.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
+  );
 };
 
 export default function DashboardCharts() {
   const [chartType, setChartType] = useState<ChartType>('line');
   
-  // Fetch daily stats from the API
   const { data: dailyStats, isLoading } = api.adminStats.getDailyStats.useQuery({
     days: 7
   });
 
-  const chartColors = {
+  const chartColors: Record<keyof Omit<ChartDataPoint, 'date' | 'formattedDate'>, string> = {
     'Total Members': '#8884d8',
     'Active Queries': '#82ca9d',
     'Total Posts': '#ffc658',
     'Active Issues': '#ff7300'
   };
 
-  // Transform the data for the chart
   const chartData: ChartDataPoint[] = dailyStats?.map(stat => ({
     date: stat.date,
     formattedDate: format(new Date(stat.date), 'MMM dd'),
@@ -86,7 +95,7 @@ export default function DashboardCharts() {
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            {Object.entries(chartColors).map(([key, color]) => (
+            {(Object.entries(chartColors) as [keyof typeof chartColors, string][]).map(([key, color]) => (
               <Line
                 key={key}
                 type="monotone"
@@ -108,7 +117,7 @@ export default function DashboardCharts() {
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            {Object.entries(chartColors).map(([key, color]) => (
+            {(Object.entries(chartColors) as [keyof typeof chartColors, string][]).map(([key, color]) => (
               <Bar key={key} dataKey={key} fill={color} />
             ))}
           </BarChart>
@@ -122,7 +131,7 @@ export default function DashboardCharts() {
             <YAxis />
             <Tooltip content={<CustomTooltip />} />
             <Legend />
-            {Object.entries(chartColors).map(([key, color]) => (
+            {(Object.entries(chartColors) as [keyof typeof chartColors, string][]).map(([key, color]) => (
               <Area
                 key={key}
                 type="monotone"
