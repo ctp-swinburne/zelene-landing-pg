@@ -2,6 +2,7 @@
 import { createTRPCRouter } from "~/server/api/trpc";
 import { adminProcedure } from "../../middlewares/auth";
 import { getPublicUrl } from "~/utils/supabase";
+import { QueryStatus } from "@prisma/client";
 import {
   PaginationSchema,
   StatusSchema,
@@ -19,7 +20,12 @@ export const adminQueryRouter = createTRPCRouter({
     .input(PaginationSchema)
     .output(PaginatedResponseSchema(ContactQuerySchema))
     .query(async ({ ctx, input }) => {
-      const where = input.status ? { status: input.status } : {};
+      let where = {};
+      
+      if (input.status) {
+        where = { status: input.status };
+      }
+
       const [items, count] = await Promise.all([
         ctx.db.contactQuery.findMany({
           where,
@@ -37,7 +43,7 @@ export const adminQueryRouter = createTRPCRouter({
             inquiryType: true,
             message: true,
             status: true,
-            response: true, // Added response field
+            response: true,
           },
         }),
         ctx.db.contactQuery.count({ where }),
@@ -54,7 +60,12 @@ export const adminQueryRouter = createTRPCRouter({
     .input(PaginationSchema)
     .output(PaginatedResponseSchema(FeedbackSchema))
     .query(async ({ ctx, input }) => {
-      const where = input.status ? { status: input.status } : {};
+      let where = {};
+      
+      if (input.status) {
+        where = { status: input.status };
+      }
+
       const [items, count] = await Promise.all([
         ctx.db.feedback.findMany({
           where,
@@ -71,7 +82,7 @@ export const adminQueryRouter = createTRPCRouter({
             recommendation: true,
             status: true,
             createdAt: true,
-            response: true, // Added response field
+            response: true,
           },
         }),
         ctx.db.feedback.count({ where }),
@@ -88,7 +99,12 @@ export const adminQueryRouter = createTRPCRouter({
     .input(PaginationSchema)
     .output(PaginatedResponseSchema(SupportRequestSchema))
     .query(async ({ ctx, input }) => {
-      const where = input.status ? { status: input.status } : {};
+      let where = {};
+      
+      if (input.status) {
+        where = { status: input.status };
+      }
+
       const [items, count] = await Promise.all([
         ctx.db.supportRequest.findMany({
           where,
@@ -104,7 +120,7 @@ export const adminQueryRouter = createTRPCRouter({
             description: true,
             priority: true,
             status: true,
-            response: true, // Added response field
+            response: true,
           },
         }),
         ctx.db.supportRequest.count({ where }),
@@ -121,7 +137,22 @@ export const adminQueryRouter = createTRPCRouter({
     .input(PaginationSchema)
     .output(PaginatedResponseSchema(TechnicalIssueSchema))
     .query(async ({ ctx, input }) => {
-      const where = input.status ? { status: input.status } : {};
+      // Base where condition to exclude RESOLVED and CANCELLED issues
+      const baseWhere = {
+        OR: [
+          { status: QueryStatus.NEW },
+          { status: QueryStatus.IN_PROGRESS }
+        ]
+      };
+      
+      // Combine with input status if provided
+      const where = input.status 
+        ? { 
+            ...baseWhere,
+            status: input.status 
+          } 
+        : baseWhere;
+
       const [items, count] = await Promise.all([
         ctx.db.technicalIssue.findMany({
           where,
@@ -141,7 +172,7 @@ export const adminQueryRouter = createTRPCRouter({
             expectedBehavior: true,
             attachments: true,
             status: true,
-            response: true, // Added response field
+            response: true,
           },
         }),
         ctx.db.technicalIssue.count({ where }),
@@ -168,7 +199,23 @@ export const adminQueryRouter = createTRPCRouter({
     .input(StatusSchema)
     .output(QueryCountsSchema)
     .query(async ({ ctx, input }): Promise<QueryCounts> => {
-      const where = input.status ? { status: input.status } : {};
+      // Base where condition for excluding resolved/cancelled when needed
+      const baseWhere = input.excludeResolved 
+        ? {
+            OR: [
+              { status: QueryStatus.NEW },
+              { status: QueryStatus.IN_PROGRESS }
+            ]
+          }
+        : {};
+        
+      // Combine with status filter if provided
+      const where = input.status 
+        ? { 
+            ...baseWhere,
+            status: input.status 
+          } 
+        : baseWhere;
 
       const [
         contactCount,

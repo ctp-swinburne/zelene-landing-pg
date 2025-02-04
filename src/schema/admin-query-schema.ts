@@ -9,6 +9,7 @@ export const PaginationSchema = z.object({
 
 export const StatusSchema = z.object({
   status: z.enum(["NEW", "IN_PROGRESS", "RESOLVED", "CANCELLED"]).optional(),
+  excludeResolved: z.boolean().optional(),
 });
 
 // Generic paginated response schema
