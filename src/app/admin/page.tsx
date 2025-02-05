@@ -1,9 +1,9 @@
-// admin/page.tsx
 "use client";
 
 import { type NextPage } from "next";
 import { Card, Row, Col, Alert, Space } from "antd";
 import DashboardStats from "./_components/DashboardStats";
+import DashboardCharts from "./_components/DashboardCharts"; // Import new component
 import { api } from "~/trpc/react";
 import { type RouterOutputs } from "~/trpc/react";
 import SupportItem from "./_components/SupportItem";
@@ -57,7 +57,9 @@ const AdminPage: NextPage = () => {
   return (
     <div className="space-y-8">
       <DashboardStats />
-
+      
+      {/* Add DashboardCharts component */}
+      <DashboardCharts />
 
       {/* Support Items */}
       <div>

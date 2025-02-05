@@ -8,6 +8,9 @@ import { adminQueryMutationsRouter } from "./routers/queries/admin-query-mutatio
 import { profileRouter } from "./routers/user/profile";
 import { queryLookupRouter } from "./routers/queries/query-lookup";
 import { postRouter } from "./routers/post/post";
+import { adminStatsRouter } from "./routers/admin/stats";
+import { weeklyStatsRouter } from "./routers/stats/weekly-stats";
+
 /**
  * This is the primary router for your server.
  *
@@ -19,9 +22,11 @@ export const appRouter = createTRPCRouter({
   queries: queryRouter,
   adminQueryView: adminQueryRouter,
   adminQueryMutations: adminQueryMutationsRouter,
+  adminStats: adminStatsRouter, 
   queryLookup: queryLookupRouter,
   profile: profileRouter,
   post: postRouter,
+  weeklyStats: weeklyStatsRouter,
 });
 
 // export type definition of API
