@@ -7,7 +7,6 @@ import { usePostStore } from "~/store/usePostStore";
 import {
   Card,
   Input,
-  Tag,
   Button,
   Space,
   Typography,
@@ -36,6 +35,8 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 import type { DetailedHTMLProps, HTMLAttributes } from "react";
+import { TagInput } from "./TagInput";
+import { useSession } from "next-auth/react";
 
 const { Title, Text } = Typography;
 const { Content, Sider } = Layout;
@@ -63,7 +64,7 @@ const suggestions = {
   tags: {
     title: "Choosing Relevant Tags",
     content:
-      "Tags help others find your content. Include technical specifications, application areas, and skill levels.",
+      "Tags help others find your content. Start with # to add tags. Admins can create official tags by including 'official' in the tag name.",
   },
   content: {
     title: "Structuring Your Content",
@@ -112,6 +113,7 @@ const MarkdownComponents: Components = {
 export const CreatePostForm: FC = () => {
   const router = useRouter();
   const store = usePostStore();
+  const { data: session } = useSession();
 
   const createPost = api.post.create.useMutation({
     onSuccess: () => {
@@ -196,7 +198,7 @@ export const CreatePostForm: FC = () => {
       title: store.title,
       content: store.content,
       excerpt: store.content.slice(0, 200) + "...",
-      tags: [], // Convert string tags to IDs based on your schema
+      tags: store.tags,
     });
   };
 
@@ -219,13 +221,8 @@ export const CreatePostForm: FC = () => {
               <article className="prose prose-lg max-w-none">
                 <Title>{store.title}</Title>
                 <Space wrap className="mb-6">
-                  {store.tags.map((tag) => (
-                    <Tag
-                      key={tag}
-                      className="rounded-full border-blue-100 bg-blue-50 px-3 py-1 text-blue-600"
-                    >
-                      {tag}
-                    </Tag>
+                  {store.tags.map((tag, index) => (
+                    <TagInput key={index} value={store.tags} onChange={store.setTags} />
                   ))}
                 </Space>
                 <ReactMarkdown
@@ -250,29 +247,11 @@ export const CreatePostForm: FC = () => {
               </div>
 
               <div className="mb-6">
-                <Space className="w-full" direction="vertical">
-                  <Input
-                    placeholder="Add tags"
-                    value={store.currentTag}
-                    onChange={(e) => store.setCurrentTag(e.target.value)}
-                    onPressEnter={() =>
-                      store.currentTag && store.addTag(store.currentTag)
-                    }
-                    onFocus={() => store.setActiveSuggestion("tags")}
-                  />
-                  <div className="mt-2">
-                    {store.tags.map((tag) => (
-                      <Tag
-                        key={tag}
-                        closable
-                        onClose={() => store.removeTag(tag)}
-                        className="mb-2 mr-2"
-                      >
-                        {tag}
-                      </Tag>
-                    ))}
-                  </div>
-                </Space>
+                <TagInput 
+                  value={store.tags}
+                  onChange={store.setTags}
+                  className="mb-4"
+                />
               </div>
 
               <Card
@@ -347,6 +326,16 @@ export const CreatePostForm: FC = () => {
           <Card>
             <Title level={4}>{suggestions[store.activeSuggestion].title}</Title>
             <Text>{suggestions[store.activeSuggestion].content}</Text>
+          </Card>
+        )}
+        {store.activeSuggestion === "tags" && session?.user.role === "ADMIN" && (
+          <Card className="mt-4">
+            <Title level={4}>Admin Tag Feature</Title>
+            <Text>
+              As an admin, you can create official tags by including &apos;official&apos; in
+              the tag name (e.g., #news-official). Official tags will be highlighted
+              and posts with these tags will appear first in listings.
+            </Text>
           </Card>
         )}
       </Sider>

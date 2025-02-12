@@ -7,10 +7,6 @@ generator client {
 
 datasource db {
     provider = "postgresql"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
     url      = env("DATABASE_URL")
 }
 
@@ -28,13 +24,13 @@ model Account {
     provider                 String
     providerAccountId        String
     refresh_token            String? // @db.Text
-    access_token             String? // @db.Text
-    expires_at               Int?
-    token_type               String?
-    scope                    String?
-    id_token                 String? // @db.Text
-    session_state            String?
-    user                     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+    access_token            String? // @db.Text
+    expires_at              Int?
+    token_type             String?
+    scope                  String?
+    id_token               String? // @db.Text
+    session_state         String?
+    user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
     refresh_token_expires_in Int?
 
     @@unique([provider, providerAccountId])
@@ -57,15 +53,12 @@ model User {
     accounts      Account[]
     sessions      Session[]
     posts         Post[]
-    // customized fields for zelene platform
     role          UserRole  @default(MEMBER)
     username      String?   @unique
     password      String?
-    // Joined - developed
     joined        DateTime  @default(now())
-    // Additional Information for Profile page
-    profile       Profile? // Relation to profile
-    social        Social? // Relation to social
+    profile       Profile?
+    social        Social?
 }
 
 model VerificationToken {
@@ -77,8 +70,6 @@ model VerificationToken {
 }
 
 // for queries module
-
-// Enum definitions for various statuses and types
 enum QueryStatus {
     NEW
     IN_PROGRESS
@@ -161,7 +152,6 @@ model Feedback {
     response       String?
 }
 
-
 // Support request model
 model SupportRequest {
     id          String          @id @default(cuid())
@@ -221,39 +211,42 @@ model Social {
 }
 
 model Post {
-    id          Int      @id @default(autoincrement())
-    title       String
-    excerpt     String   @db.Text
-    content     String   @db.Text
-    publishedAt DateTime @default(now())
-    updatedAt   DateTime @updatedAt
-    createdAt DateTime @default(now())
+    id            Int            @id @default(autoincrement())
+    title         String
+    excerpt       String         @db.Text
+    content       String         @db.Text
+    publishedAt   DateTime       @default(now())
+    updatedAt     DateTime       @updatedAt
+    createdAt     DateTime       @default(now())
     // Stats
-    viewCount    Int @default(0)
-    likeCount    Int @default(0)
-    commentCount Int @default(0)
+    viewCount     Int            @default(0)
+    likeCount     Int            @default(0)
+    commentCount  Int            @default(0)
+    // Official content fields
+    isOfficial    Boolean        @default(false)
+    priority      Int            @default(0)
+    // Relations
+    createdBy     User           @relation(fields: [createdById], references: [id])
+    createdById   String
+    tags          TagsOnPosts[]
+    relatedTo     RelatedPosts[] @relation("RelatedFrom")
+    relatedFrom   RelatedPosts[] @relation("RelatedTo")
 
-    // Keep the original user relation naming
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    // Tags - many-to-many relationship
-    tags TagsOnPosts[]
-
-    // Related posts - many-to-many self-relation
-    relatedTo   RelatedPosts[] @relation("RelatedFrom")
-    relatedFrom RelatedPosts[] @relation("RelatedTo")
-
+    @@index([isOfficial, priority, publishedAt])
     @@index([title])
-    @@index([publishedAt])
     @@index([createdById])
 }
 
 // Tags implementation
 model Tag {
-    id    Int           @id @default(autoincrement())
-    name  String        @unique
-    posts TagsOnPosts[]
+    id         Int           @id @default(autoincrement())
+    name       String        @unique
+    isOfficial Boolean       @default(false)
+    createdAt  DateTime      @default(now())
+    updatedAt  DateTime      @updatedAt
+    posts      TagsOnPosts[]
+
+    @@index([isOfficial, name])
 }
 
 // Join table for posts and tags

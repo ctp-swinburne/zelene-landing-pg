@@ -10,6 +10,7 @@ import { queryLookupRouter } from "./routers/queries/query-lookup";
 import { postRouter } from "./routers/post/post";
 import { adminStatsRouter } from "./routers/admin/stats";
 import { weeklyStatsRouter } from "./routers/stats/weekly-stats";
+import { tagRouter } from "./routers/post/tag";
 
 /**
  * This is the primary router for your server.
@@ -27,6 +28,7 @@ export const appRouter = createTRPCRouter({
   profile: profileRouter,
   post: postRouter,
   weeklyStats: weeklyStatsRouter,
+  tag: tagRouter,
 });
 
 // export type definition of API
