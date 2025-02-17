@@ -2,6 +2,7 @@ import React from 'react';
 import { Drawer, Tabs, Tag, Empty, Card, Space } from 'antd';
 import type { TabsProps } from 'antd';
 import { api } from "~/trpc/react";
+import { useRouter } from 'next/navigation';
 
 interface QueryPreviewDrawerProps {
   open: boolean;
@@ -9,6 +10,8 @@ interface QueryPreviewDrawerProps {
 }
 
 export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawerProps) {
+  const router = useRouter();
+  
   // Fetch NEW queries
   const { data: contacts } = api.adminQueryView.getContacts.useQuery({
     page: 1,
@@ -34,6 +37,23 @@ export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawer
     status: "NEW"
   });
 
+  const handleQueryClick = (type: string, id: string) => {
+    // Map query type to corresponding route
+    const routes = {
+      contact: '/admin/contact',
+      feedback: '/admin/feedback',
+      technical: '/admin/issues',
+      support: '/admin/support'
+    };
+
+    // Close the drawer
+    onClose();
+
+    // Navigate to the corresponding page
+    // In the future, you might want to add query parameters to highlight the specific item
+    router.push(routes[type as keyof typeof routes]);
+  };
+
   const items: TabsProps['items'] = [
     {
       key: '1',
@@ -41,7 +61,12 @@ export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawer
       children: contacts?.items.length ? (
         <div className="space-y-4 max-h-[600px] overflow-y-auto">
           {contacts.items.map((contact) => (
-            <Card key={contact.id} size="small" className="shadow-sm">
+            <Card 
+              key={contact.id} 
+              size="small" 
+              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleQueryClick('contact', contact.id)}
+            >
               <Space direction="vertical" className="w-full">
                 <div>
                   <span className="font-medium">{contact.organization}</span>
@@ -64,7 +89,12 @@ export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawer
       children: feedback?.items.length ? (
         <div className="space-y-4 max-h-[600px] overflow-y-auto">
           {feedback.items.map((item) => (
-            <Card key={item.id} size="small" className="shadow-sm">
+            <Card 
+              key={item.id} 
+              size="small" 
+              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleQueryClick('feedback', item.id)}
+            >
               <Space direction="vertical" className="w-full">
                 <div>
                   <Tag color="purple">{item.category}</Tag>
@@ -88,7 +118,12 @@ export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawer
       children: technicalIssues?.items.length ? (
         <div className="space-y-4 max-h-[600px] overflow-y-auto">
           {technicalIssues.items.map((issue) => (
-            <Card key={issue.id} size="small" className="shadow-sm">
+            <Card 
+              key={issue.id} 
+              size="small" 
+              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleQueryClick('technical', issue.id)}
+            >
               <Space direction="vertical" className="w-full">
                 <div>
                   <span className="font-medium">{issue.title}</span>
@@ -111,7 +146,12 @@ export default function QueryPreviewDrawer({ open, onClose }: QueryPreviewDrawer
       children: supportRequests?.items.length ? (
         <div className="space-y-4 max-h-[600px] overflow-y-auto">
           {supportRequests.items.map((request) => (
-            <Card key={request.id} size="small" className="shadow-sm">
+            <Card 
+              key={request.id} 
+              size="small" 
+              className="shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => handleQueryClick('support', request.id)}
+            >
               <Space direction="vertical" className="w-full">
                 <div>
                   <span className="font-medium">{request.subject}</span>
