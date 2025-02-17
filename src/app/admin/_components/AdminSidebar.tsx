@@ -10,6 +10,7 @@ import {
   UserOutlined,
   LogoutOutlined,
   ExclamationCircleFilled,
+  EditOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -20,6 +21,7 @@ const menuItems = [
     icon: <FileTextOutlined />,
     label: "Content",
     children: [
+      { key: "/admin/posts", label: "Posts", icon: <EditOutlined /> },
       { key: "/admin/news", label: "Official News" },
       { key: "/admin/blog", label: "Tech Blog" },
     ],
