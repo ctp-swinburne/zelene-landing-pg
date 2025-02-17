@@ -1,5 +1,4 @@
-// ~/store/usePostStore.ts
-import { create } from "zustand";
+import { create } from 'zustand';
 
 interface PostStore {
   // Content state
@@ -7,54 +6,69 @@ interface PostStore {
   content: string;
   tags: string[];
   currentTag: string;
-
-  // Editor state
   isPreview: boolean;
+  
+  // Editor state
   selectionStart: number;
   selectionEnd: number;
-  activeSuggestion: "title" | "tags" | "content" | null;
+  activeSuggestion: 'title' | 'tags' | 'content' | null;
 
   // Actions
   setTitle: (title: string) => void;
   setContent: (content: string) => void;
+  setTags: (tags: string[]) => void;
   addTag: (tag: string) => void;
   removeTag: (tag: string) => void;
   setCurrentTag: (tag: string) => void;
-  setSelectionRange: (start: number, end: number) => void;
   togglePreview: () => void;
-  setActiveSuggestion: (type: "title" | "tags" | "content" | null) => void;
+  setSelectionRange: (start: number, end: number) => void;
+  setActiveSuggestion: (type: 'title' | 'tags' | 'content' | null) => void;
   reset: () => void;
 }
 
 const initialState = {
-  title: "",
-  content: "",
+  title: '',
+  content: '',
   tags: [],
-  currentTag: "",
+  currentTag: '',
   isPreview: false,
   selectionStart: 0,
   selectionEnd: 0,
-  activeSuggestion: null as "title" | "tags" | "content" | null,
+  activeSuggestion: null,
 };
 
 export const usePostStore = create<PostStore>((set) => ({
+  // Initial state
   ...initialState,
 
+  // Actions
   setTitle: (title) => set({ title }),
+  
   setContent: (content) => set({ content }),
-  addTag: (tag) =>
-    set((state) => ({
-      tags: state.tags.includes(tag) ? state.tags : [...state.tags, tag],
-      currentTag: "",
-    })),
-  removeTag: (tag) =>
-    set((state) => ({
-      tags: state.tags.filter((t) => t !== tag),
-    })),
+  
+  setTags: (tags) => set({ tags }),
+  
+  addTag: (tag) => set((state) => ({
+    tags: [...state.tags, tag],
+    currentTag: '', // Reset current tag after adding
+  })),
+  
+  removeTag: (tagToRemove) => set((state) => ({
+    tags: state.tags.filter((tag) => tag !== tagToRemove),
+  })),
+  
   setCurrentTag: (currentTag) => set({ currentTag }),
-  setSelectionRange: (start, end) =>
-    set({ selectionStart: start, selectionEnd: end }),
-  togglePreview: () => set((state) => ({ isPreview: !state.isPreview })),
+  
+  togglePreview: () => set((state) => ({ 
+    isPreview: !state.isPreview 
+  })),
+  
+  setSelectionRange: (selectionStart, selectionEnd) => set({
+    selectionStart,
+    selectionEnd,
+  }),
+  
   setActiveSuggestion: (activeSuggestion) => set({ activeSuggestion }),
+  
   reset: () => set(initialState),
 }));

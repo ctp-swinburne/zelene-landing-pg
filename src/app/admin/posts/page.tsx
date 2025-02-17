@@ -75,13 +75,18 @@ export default function PostManagementPage() {
 
   const handleSubmit = async (values: FormData) => {
     try {
+      const formattedValues = {
+        ...values,
+        tags: values.tags?.map(String), // Chuyển đổi tags từ number[] sang string[]
+      };
+
       if (editingPost) {
         await updateMutation.mutateAsync({
           id: editingPost.id,
-          ...values,
+          ...formattedValues,
         });
       } else {
-        await createMutation.mutateAsync(values);
+        await createMutation.mutateAsync(formattedValues);
       }
     } catch {
       // Error handling is done in mutation callbacks

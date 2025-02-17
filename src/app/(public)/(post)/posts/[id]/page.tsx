@@ -1,3 +1,5 @@
+//(public) / (post) / posts / [id] / page.tsx
+
 "use client";
 
 import { type FC } from "react";
