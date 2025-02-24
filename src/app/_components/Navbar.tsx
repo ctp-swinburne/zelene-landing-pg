@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Layout, Menu, Button, Dropdown, Avatar, Tag } from "antd";
+import { Layout, Menu, Button, Dropdown, Avatar, Tag, Space } from "antd";
 import { signIn, useSession, signOut } from "next-auth/react";
 import { type Session } from "next-auth";
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import {
   PlusOutlined,
   DashboardOutlined,
   CrownOutlined,
+  DownOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -25,13 +26,32 @@ export function Navbar() {
     session?.user.role === "ADMIN" || session?.user.role === "TENANT_ADMIN";
   const isTenantAdmin = session?.user.role === "TENANT_ADMIN";
 
-  // Different menu items based on user role
+  // Regular menu items
   const regularMenuItems = [
     { key: "home", label: "Home", href: "/" },
     { key: "about", label: "About", href: "/about" },
     { key: "contact", label: "Contact", href: "/contact" },
   ];
 
+  // Posts dropdown menu
+  const postsMenu = {
+    items: [
+      {
+        key: 'all-posts',
+        label: 'All Posts',
+        icon: <AppstoreOutlined />,
+        onClick: () => router.push('/posts'),
+      },
+      {
+        key: 'official-posts',
+        label: 'Official Posts',
+        icon: <CrownOutlined />,
+        onClick: () => router.push('/posts?official=true'),
+      },
+    ],
+  };
+
+  // Admin menu items with posts dropdown
   const adminMenuItems = [
     {
       key: "dashboard",
@@ -46,12 +66,14 @@ export function Navbar() {
     {
       key: "posts",
       label: (
-        <span className="flex items-center gap-2">
-          <AppstoreOutlined />
-          Posts
-        </span>
+        <Dropdown menu={postsMenu} trigger={['hover']}>
+          <span className="flex items-center gap-2 cursor-pointer">
+            <AppstoreOutlined />
+            Posts
+            <DownOutlined style={{ fontSize: '12px' }} />
+          </span>
+        </Dropdown>
       ),
-      href: "/posts",
     },
   ];
 
@@ -164,15 +186,19 @@ export function Navbar() {
                   borderBottom: "none",
                 }}
               >
-                <Link
-                  href={item.href}
-                  style={{
-                    textDecoration: "none",
-                    position: "relative",
-                  }}
-                >
-                  {item.label}
-                </Link>
+                {item.href ? (
+                  <Link
+                    href={item.href}
+                    style={{
+                      textDecoration: "none",
+                      position: "relative",
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ) : (
+                  item.label
+                )}
               </Menu.Item>
             ))}
           </Menu>
