@@ -1,5 +1,3 @@
-//(public) / (post) / posts / [id] / page.tsx
-
 "use client";
 
 import { type FC } from "react";
@@ -17,6 +15,7 @@ import {
   Card,
   Spin,
   Alert,
+  Badge,
 } from "antd";
 import {
   UserOutlined,
@@ -24,6 +23,7 @@ import {
   EyeOutlined,
   LikeOutlined,
   MessageOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -149,10 +149,14 @@ const PostDetails: FC = () => {
                     size={40}
                     src={post.createdBy.image}
                     icon={<UserOutlined />}
+                    className={post.isOfficial ? 'border-2 border-yellow-400' : ''}
                   />
                   <Space direction="vertical" size={0}>
                     <Text strong className="text-lg">
                       {post.createdBy.name}
+                    </Text>
+                    <Text type="secondary" className="text-xs">
+                      {post.isOfficial ? 'Official Contributor' : 'Member'}
                     </Text>
                   </Space>
                 </Space>
@@ -169,8 +173,13 @@ const PostDetails: FC = () => {
                 {post.tags.map((tagOnPost) => (
                   <Tag
                     key={tagOnPost.tag.id}
-                    className="rounded-full border-blue-100 bg-blue-50 px-3 py-1 text-blue-600"
+                    className={`rounded-full px-3 py-1 ${
+                      tagOnPost.tag.name.includes('official')
+                        ? 'border-yellow-400 bg-yellow-50 text-yellow-600'
+                        : 'border-blue-100 bg-blue-50 text-blue-600'
+                    }`}
                   >
+                    {tagOnPost.tag.name.includes('official') && <CrownOutlined className="mr-1" />}
                     {tagOnPost.tag.name}
                   </Tag>
                 ))}
@@ -248,8 +257,13 @@ const PostDetails: FC = () => {
                         {relation.relatedPost.tags.map((tagOnPost) => (
                           <Tag
                             key={tagOnPost.tag.id}
-                            className="rounded-full border-gray-100 bg-gray-50 px-2 py-0.5 text-gray-600"
+                            className={`rounded-full px-2 py-0.5 ${
+                              tagOnPost.tag.name.includes('official')
+                                ? 'border-yellow-400 bg-yellow-50 text-yellow-600'
+                                : 'border-gray-100 bg-gray-50 text-gray-600'
+                            }`}
                           >
+                            {tagOnPost.tag.name.includes('official') && <CrownOutlined className="mr-1" />}
                             {tagOnPost.tag.name}
                           </Tag>
                         ))}

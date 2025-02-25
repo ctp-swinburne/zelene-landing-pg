@@ -1,10 +1,11 @@
-// app/(public)/(post)/posts/_components/BrowsePosts.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { RouterOutputs } from "~/trpc/react";
 import { api } from "~/trpc/react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Layout,
   Input,
@@ -152,8 +153,18 @@ export default function BrowsePosts() {
           }`}>
             {post.title}
           </Title>
-          <Text type="secondary" className="text-sm">
-            {post.excerpt}
+          <Text type="secondary" className="text-sm prose prose-sm max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                p: ({children}) => <span>{children}</span>,
+                strong: ({children}) => <span className="font-bold">{children}</span>,
+                em: ({children}) => <span className="italic">{children}</span>,
+                code: ({children}) => <code className="bg-gray-100 rounded px-1">{children}</code>,
+              }}
+            >
+              {post.excerpt}
+            </ReactMarkdown>
           </Text>
         </div>
 
