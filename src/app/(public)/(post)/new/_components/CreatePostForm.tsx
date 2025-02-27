@@ -15,6 +15,7 @@ import {
   Divider,
   Select,
   message,
+  Tag,
 } from "antd";
 import {
   BoldOutlined,
@@ -33,6 +34,7 @@ import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import type { Components } from "react-markdown";
 import type { DetailedHTMLProps, HTMLAttributes } from "react";
 import { TagInput } from "./TagInput";
@@ -88,6 +90,7 @@ const ToolbarButton: FC<ToolbarButtonProps> = ({
   </Tooltip>
 );
 
+// Đã cải thiện các MarkdownComponents để xử lý đúng các thẻ Markdown
 const MarkdownComponents: Components = {
   code({
     inline,
@@ -108,6 +111,20 @@ const MarkdownComponents: Components = {
       </code>
     );
   },
+  p: ({children}) => <p className="mb-4">{children}</p>,
+  // Đảm bảo cấu hình đúng cho thẻ strong
+  strong: ({children}) => <strong className="font-bold">{children}</strong>,
+  em: ({children}) => <em className="italic">{children}</em>,
+  del: ({children}) => <del className="line-through">{children}</del>,
+  u: ({children}) => <u className="underline">{children}</u>,
+  // Thêm các thẻ header để đảm bảo định dạng đúng
+  h1: ({children}) => <h1 className="mb-4 mt-6 text-2xl font-bold">{children}</h1>,
+  h2: ({children}) => <h2 className="mb-3 mt-5 text-xl font-bold">{children}</h2>,
+  h3: ({children}) => <h3 className="mb-2 mt-4 text-lg font-bold">{children}</h3>,
+  // Thêm cấu hình cho danh sách
+  ul: ({children}) => <ul className="mb-4 ml-6 list-disc">{children}</ul>,
+  ol: ({children}) => <ol className="mb-4 ml-6 list-decimal">{children}</ol>,
+  li: ({children}) => <li className="mb-1">{children}</li>,
 };
 
 export const CreatePostForm: FC = () => {
@@ -128,15 +145,37 @@ export const CreatePostForm: FC = () => {
 
   const executeCommand = (command: EditorCommand) => {
     const { prefix, suffix, placeholder = "text" } = command;
-    const { selectionStart: start, selectionEnd: end } = store;
+    const textArea = document.querySelector('textarea');
+    if (!textArea) return;
 
+    const start = textArea.selectionStart;
+    const end = textArea.selectionEnd;
     const beforeSelection = store.content.substring(0, start);
-    const selection = store.content.substring(start, end) || placeholder;
+    const selection = store.content.substring(start, end);
     const afterSelection = store.content.substring(end);
 
-    store.setContent(
-      `${beforeSelection}${prefix}${selection}${suffix}${afterSelection}`,
-    );
+    // Nếu không có text được chọn, sử dụng placeholder
+    const textToWrap = selection || placeholder;
+    
+    // Cập nhật nội dung và vị trí con trỏ
+    const newContent = `${beforeSelection}${prefix}${textToWrap}${suffix}${afterSelection}`;
+    store.setContent(newContent);
+    
+    // Đặt lại vị trí con trỏ sau khi cập nhật
+    setTimeout(() => {
+      textArea.focus();
+      if (selection) {
+        // Nếu có text được chọn, giữ nguyên selection sau khi thêm format
+        textArea.setSelectionRange(
+          start + prefix.length,
+          end + prefix.length
+        );
+      } else {
+        // Nếu không có text được chọn, đặt con trỏ vào giữa prefix và suffix
+        const cursorPosition = start + prefix.length + placeholder.length;
+        textArea.setSelectionRange(cursorPosition, cursorPosition);
+      }
+    }, 0);
   };
 
   const headerOptions = [
@@ -220,13 +259,18 @@ export const CreatePostForm: FC = () => {
             <Card>
               <article className="prose prose-lg max-w-none">
                 <Title>{store.title}</Title>
+                {/* Sửa lỗi hiển thị tags */}
                 <Space wrap className="mb-6">
-                  {store.tags.map((tag, index) => (
-                    <TagInput key={index} value={store.tags} onChange={store.setTags} />
+                  {store.tags.map((tag) => (
+                    <Tag key={tag} className="rounded-full px-3 py-1">
+                      #{tag}
+                    </Tag>
                   ))}
                 </Space>
+                {/* Đã cải thiện cấu hình ReactMarkdown để xử lý đúng các thẻ định dạng */}
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
+                  rehypePlugins={[rehypeRaw]}
                   components={MarkdownComponents}
                 >
                   {store.content}
