@@ -1,9 +1,10 @@
 "use client";
 
 import { type NextPage } from "next";
-import { Card, Row, Col, Alert, Space } from "antd";
+import { Card, Row, Col, Alert, Space, Button } from "antd";
 import DashboardStats from "./_components/DashboardStats";
-import DashboardCharts from "./_components/DashboardCharts"; // Import new component
+import DashboardCharts from "./_components/DashboardCharts";
+import OfficialNewsWidget from "./_components/OfficialNewsWidget";
 import { api } from "~/trpc/react";
 import { type RouterOutputs } from "~/trpc/react";
 import SupportItem from "./_components/SupportItem";
@@ -58,8 +59,41 @@ const AdminPage: NextPage = () => {
     <div className="space-y-8">
       <DashboardStats />
       
-      {/* Add DashboardCharts component */}
+      {/* Dashboard Charts */}
       <DashboardCharts />
+      
+      {/* Content Management Section */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={16}>
+          <OfficialNewsWidget />
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card title="Quick Actions" className="h-full">
+            <div className="space-y-4">
+              <Button 
+                type="primary" 
+                block
+                onClick={() => window.location.href = '/admin/news'}
+              >
+                Create Official News
+              </Button>
+              <Button 
+                block
+                onClick={() => window.location.href = '/admin/posts'}
+              >
+                Manage Posts
+              </Button>
+              <Button 
+                block
+                onClick={() => window.location.href = '/posts'}
+                target="_blank"
+              >
+                View Public Site
+              </Button>
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Support Items */}
       <div>
