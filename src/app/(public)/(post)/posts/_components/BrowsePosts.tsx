@@ -6,6 +6,7 @@ import type { RouterOutputs } from "~/trpc/react";
 import { api } from "~/trpc/react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw"; // Import rehypeRaw to parse HTML
 import {
   Layout,
   Input,
@@ -154,13 +155,17 @@ export default function BrowsePosts() {
             {post.title}
           </Title>
           <Text type="secondary" className="text-sm prose prose-sm max-w-none">
+            {/* Use rehypeRaw to parse HTML in the excerpt */}
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
+              rehypePlugins={[rehypeRaw]}
               components={{
                 p: ({children}) => <span>{children}</span>,
                 strong: ({children}) => <span className="font-bold">{children}</span>,
                 em: ({children}) => <span className="italic">{children}</span>,
                 code: ({children}) => <code className="bg-gray-100 rounded px-1">{children}</code>,
+                // Allow underline tags to be rendered properly
+                u: ({children}) => <span className="underline">{children}</span>
               }}
             >
               {post.excerpt}
