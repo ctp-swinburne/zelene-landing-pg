@@ -1,7 +1,7 @@
 //admin/_components/AdminSidebar.tsx
 "use client";
 
-import { Layout, Menu, App } from "antd";
+import { Layout, Menu, App, Button } from "antd";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
@@ -11,6 +11,7 @@ import {
   LogoutOutlined,
   ExclamationCircleFilled,
   EditOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
@@ -22,7 +23,7 @@ const menuItems = [
     label: "Content",
     children: [
       { key: "/admin/posts", label: "Posts", icon: <EditOutlined /> },
-      { key: "/admin/news", label: "Official News" },
+      { key: "/admin/news", label: "Official News", icon: <CrownOutlined /> },
       { key: "/admin/blog", label: "Tech Blog" },
     ],
   },

@@ -499,7 +499,7 @@ const PostDetails: FC = () => {
 
           {/* Sidebar */}
           <Col xs={24} md={20} lg={8} xl={6}>
-            <Affix offsetTop={20}>
+            <div className="sticky top-6" style={{ maxHeight: 'calc(100vh - 100px)', overflowY: 'auto' }}>
               <div className="space-y-6">
                 {/* About Author Card */}
                 <Card 
@@ -526,9 +526,11 @@ const PostDetails: FC = () => {
                       <Text type="secondary" className="block">
                         {post.isOfficial ? 'Official Contributor' : 'Member'}
                       </Text>
-                      <Button type="link" size="small" className="p-0">
-                        View Profile
-                      </Button>
+                      <Link href={`/profile/${post.createdBy.id}`}>
+                        <Button type="link" size="small" className="p-0">
+                          View Profile
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </Card>
@@ -618,7 +620,7 @@ const PostDetails: FC = () => {
                   </Space>
                 </Card>
               </div>
-            </Affix>
+            </div>
           </Col>
         </Row>
       </Content>
