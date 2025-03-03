@@ -25,7 +25,7 @@ export default function NotificationList({
       icon: <MessageCircle className="text-blue-500" />,
       title: "Contact Queries",
       count: contacts,
-      path: "/admin/contacts"
+      path: "/admin/contact"
     },
     {
       type: "technicalIssues",
