@@ -30,8 +30,7 @@ export default function OfficialNewsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
   const [form] = Form.useForm<OfficialNewsFormData>();
-  const [isLoadingPostDetails, setIsLoadingPostDetails] = useState(false);
-
+  
   // Query for fetching posts with official filter
   const { data: posts, isLoading, refetch } = api.post.getAll.useQuery({
     limit: 100,
@@ -44,7 +43,7 @@ export default function OfficialNewsPage() {
       message.success("Official news created successfully");
       setIsModalOpen(false);
       form.resetFields();
-      refetch();
+      void refetch();
     },
     onError: (error) => {
       message.error(error.message || "Failed to create news");
@@ -57,7 +56,7 @@ export default function OfficialNewsPage() {
       message.success("Official news updated successfully");
       setIsModalOpen(false);
       form.resetFields();
-      refetch();
+      void refetch();
     },
     onError: (error) => {
       message.error(error.message || "Failed to update news");
@@ -68,7 +67,7 @@ export default function OfficialNewsPage() {
   const deletePostMutation = api.post.delete.useMutation({
     onSuccess: () => {
       message.success("Official news deleted successfully");
-      refetch();
+      void refetch();
     },
     onError: (error) => {
       message.error(error.message || "Failed to delete news");
@@ -122,7 +121,6 @@ export default function OfficialNewsPage() {
   // Open modal for editing post
   const showEditModal = (post: PostData) => {
     setEditingPostId(post.id);
-    setIsLoadingPostDetails(true);
     
     // Set initial values with available information
     form.setFieldsValue({
@@ -146,7 +144,7 @@ export default function OfficialNewsPage() {
       okType: 'danger',
       cancelText: 'Cancel',
       onOk() {
-        deletePostMutation.mutate({ id });
+        void deletePostMutation.mutateAsync({ id });
       },
     });
   };
