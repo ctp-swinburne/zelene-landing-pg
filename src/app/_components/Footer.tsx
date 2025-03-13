@@ -33,7 +33,6 @@ const footerSections: FooterSection[] = [
     title: "Resources",
     items: [
       { label: "User Guide", href: "/guide" },
-      { label: "API Reference", href: "/api" },
       { label: "System Status", href: "/status" },
       { label: "Security", href: "/security" },
     ],
