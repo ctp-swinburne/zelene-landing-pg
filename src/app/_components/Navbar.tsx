@@ -13,6 +13,8 @@ import {
   CrownOutlined,
   DownOutlined,
   AppstoreOutlined,
+  FileTextOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -26,20 +28,13 @@ export function Navbar() {
     session?.user.role === "ADMIN" || session?.user.role === "TENANT_ADMIN";
   const isTenantAdmin = session?.user.role === "TENANT_ADMIN";
 
-  // Regular menu items
-  const regularMenuItems = [
-    { key: "home", label: "Home", href: "/" },
-    { key: "about", label: "About", href: "/about" },
-    { key: "contact", label: "Contact", href: "/contact" },
-  ];
-
-  // Posts dropdown menu
+  // Posts dropdown menu for all users
   const postsMenu = {
     items: [
       {
         key: 'all-posts',
         label: 'All Posts',
-        icon: <AppstoreOutlined />,
+        icon: <FileTextOutlined />,
         onClick: () => router.push('/posts'),
       },
       {
@@ -51,7 +46,26 @@ export function Navbar() {
     ],
   };
 
-  // Admin menu items with posts dropdown
+  // Regular menu items - now includes Posts
+  const regularMenuItems = [
+    { key: "home", label: "Home", href: "/" },
+    { key: "about", label: "About", href: "/about" },
+    { 
+      key: "posts", 
+      label: (
+        <Dropdown menu={postsMenu} trigger={['hover']}>
+          <span className="flex items-center gap-2 cursor-pointer">
+            <ReadOutlined />
+            Posts
+            <DownOutlined style={{ fontSize: '12px' }} />
+          </span>
+        </Dropdown>
+      ),
+    },
+    { key: "contact", label: "Contact", href: "/contact" },
+  ];
+
+  // Admin menu items with dashboard access
   const adminMenuItems = [
     {
       key: "dashboard",
@@ -89,6 +103,7 @@ export function Navbar() {
     }
   };
 
+  // User dropdown items - Create Post is available to all authenticated users
   const userDropdownItems: MenuProps["items"] = [
     {
       key: "profile",

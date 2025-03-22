@@ -345,7 +345,7 @@ export default function SignInClient() {
           <div className="mt-4 flex flex-col items-center gap-2">
             <Text type="secondary">New to Zelene Platform Community?</Text>
             <Link
-              href="/auth/signup"
+              href="/auth/signup/new-user"
               className="text-primary font-medium hover:underline"
             >
               Create account
